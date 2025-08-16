@@ -1,42 +1,78 @@
+
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { PageHeader } from '@/components/shared/page-header';
 import { AppointmentCard } from '@/components/shared/appointment-card';
-import { mockAppointments, mockDoctors, mockPatients } from '@/lib/mock-data';
+import { getAppointmentsForPatient, getDoctor } from '@/lib/firestore-service';
 import { CalendarCheck } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type { Appointment, Doctor } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
+
+// Hardcoded patient ID for demonstration. In a real app, this would come from auth.
+const FAKE_PATIENT_ID = 'patient1';
+
+interface PopulatedAppointment extends Appointment {
+    doctor: Doctor | null;
+}
 
 export default function MyAppointmentsPage() {
-  const currentPatient = mockPatients[0]; // Assuming patient1 is logged in
+  const [appointments, setAppointments] = useState<PopulatedAppointment[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAppointments = async () => {
+        setLoading(true);
+        const userAppointments = await getAppointmentsForPatient(FAKE_PATIENT_ID);
+        
+        // Fetch doctor details for each appointment
+        const populatedAppointments = await Promise.all(
+            userAppointments.map(async (app) => {
+                const doctor = await getDoctor(app.doctorId);
+                return { ...app, doctor };
+            })
+        );
+        
+        setAppointments(populatedAppointments);
+        setLoading(false);
+    }
+    fetchAppointments();
+  }, [])
+
 
   const { upcomingAppointments, pastAppointments } = useMemo(() => {
-    const userAppointments = mockAppointments
-      .filter(a => a.patientId === currentPatient.uid)
+    const sortedAppointments = appointments
       .sort((a, b) => new Date(b.appointmentDate).getTime() - new Date(a.appointmentDate).getTime());
     
     const now = new Date();
-    const upcoming = userAppointments.filter(a => new Date(a.appointmentDate) >= now);
-    const past = userAppointments.filter(a => new Date(a.appointmentDate) < now);
+    now.setHours(0,0,0,0);
+    const upcoming = sortedAppointments.filter(a => new Date(a.appointmentDate) >= now);
+    const past = sortedAppointments.filter(a => new Date(a.appointmentDate) < now);
     
     return { upcomingAppointments: upcoming, pastAppointments: past };
-  }, [currentPatient.uid]);
+  }, [appointments]);
 
-  const renderAppointments = (appointments: typeof mockAppointments) => {
-    if (appointments.length === 0) {
+  const renderAppointments = (apps: PopulatedAppointment[]) => {
+    if (apps.length === 0) {
       return <p className="text-center text-muted-foreground py-10">No appointments in this category.</p>;
     }
     return (
       <div className="space-y-4">
-        {appointments.map(app => {
-          const doctor = mockDoctors.find(d => d.uid === app.doctorId);
-          if (!doctor) return null;
-          return <AppointmentCard key={app.id} appointment={app} user={doctor} perspective="patient" />;
+        {apps.map(app => {
+          if (!app.doctor) return null;
+          return <AppointmentCard key={app.id} appointment={app} user={app.doctor} perspective="patient" />;
         })}
       </div>
     );
   };
   
+  const renderSkeleton = () => (
+    <div className="space-y-4">
+        {[...Array(2)].map((_, i) => <Skeleton key={i} className="h-48 w-full" />)}
+    </div>
+  )
+
   return (
     <div className="container mx-auto">
       <PageHeader
@@ -50,10 +86,10 @@ export default function MyAppointmentsPage() {
           <TabsTrigger value="past">Past</TabsTrigger>
         </TabsList>
         <TabsContent value="upcoming" className="mt-6">
-          {renderAppointments(upcomingAppointments)}
+          {loading ? renderSkeleton() : renderAppointments(upcomingAppointments)}
         </TabsContent>
         <TabsContent value="past" className="mt-6">
-          {renderAppointments(pastAppointments)}
+          {loading ? renderSkeleton() : renderAppointments(pastAppointments)}
         </TabsContent>
       </Tabs>
     </div>

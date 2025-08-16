@@ -1,41 +1,74 @@
+
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { PageHeader } from '@/components/shared/page-header';
 import { AppointmentCard } from '@/components/shared/appointment-card';
-import { mockAppointments, mockDoctors, mockPatients } from '@/lib/mock-data';
+import { getAppointmentsForDoctor, getPatient } from '@/lib/firestore-service';
 import { LayoutDashboard } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type { Appointment, Patient } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
+
+// Hardcoded doctor ID for demonstration. In a real app, this would come from auth.
+const FAKE_DOCTOR_ID = 'doctor1';
+
+interface PopulatedAppointment extends Appointment {
+    patient: Patient | null;
+}
 
 export default function DoctorDashboardPage() {
-  const currentDoctor = mockDoctors[0]; // Assuming doctor1 is logged in
+  const [appointments, setAppointments] = useState<PopulatedAppointment[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAppointments = async () => {
+        setLoading(true);
+        const doctorAppointments = await getAppointmentsForDoctor(FAKE_DOCTOR_ID);
+
+        const populatedAppointments = await Promise.all(
+            doctorAppointments.map(async (app) => {
+                const patient = await getPatient(app.patientId);
+                return { ...app, patient };
+            })
+        );
+        setAppointments(populatedAppointments);
+        setLoading(false);
+    }
+    fetchAppointments();
+  }, []);
 
   const { upcomingAppointments, pastAppointments } = useMemo(() => {
-    const userAppointments = mockAppointments
-      .filter(a => a.doctorId === currentDoctor.uid)
+    const userAppointments = appointments
       .sort((a, b) => new Date(a.appointmentDate).getTime() - new Date(b.appointmentDate).getTime());
     
     const now = new Date();
+    now.setHours(0,0,0,0);
     const upcoming = userAppointments.filter(a => new Date(a.appointmentDate) >= now);
     const past = userAppointments.filter(a => new Date(a.appointmentDate) < now).reverse();
     
     return { upcomingAppointments: upcoming, pastAppointments: past };
-  }, [currentDoctor.uid]);
+  }, [appointments]);
 
-  const renderAppointments = (appointments: typeof mockAppointments) => {
-    if (appointments.length === 0) {
+  const renderAppointments = (apps: PopulatedAppointment[]) => {
+    if (apps.length === 0) {
       return <p className="text-center text-muted-foreground py-10">No appointments in this category.</p>;
     }
     return (
       <div className="space-y-4">
-        {appointments.map(app => {
-          const patient = mockPatients.find(p => p.uid === app.patientId);
-          if (!patient) return null;
-          return <AppointmentCard key={app.id} appointment={app} user={patient} perspective="doctor" />;
+        {apps.map(app => {
+          if (!app.patient) return null;
+          return <AppointmentCard key={app.id} appointment={app} user={app.patient} perspective="doctor" />;
         })}
       </div>
     );
   };
+
+  const renderSkeleton = () => (
+    <div className="space-y-4">
+        {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-48 w-full" />)}
+    </div>
+  )
   
   return (
     <div className="container mx-auto">
@@ -50,10 +83,10 @@ export default function DoctorDashboardPage() {
           <TabsTrigger value="past">Completed</TabsTrigger>
         </TabsList>
         <TabsContent value="upcoming" className="mt-6">
-          {renderAppointments(upcomingAppointments)}
+          {loading ? renderSkeleton() : renderAppointments(upcomingAppointments)}
         </TabsContent>
         <TabsContent value="past" className="mt-6">
-          {renderAppointments(pastAppointments)}
+          {loading ? renderSkeleton() : renderAppointments(pastAppointments)}
         </TabsContent>
       </Tabs>
     </div>

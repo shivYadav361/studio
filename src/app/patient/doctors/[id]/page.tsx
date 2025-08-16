@@ -1,34 +1,60 @@
+
 'use client';
 
-import { useState } from 'react';
-import Image from 'next/image';
-import { notFound } from 'next/navigation';
-import { mockDoctors } from '@/lib/mock-data';
+import { useState, useEffect } from 'react';
+import { notFound, useRouter } from 'next/navigation';
+import { getDoctor, bookAppointment } from '@/lib/firestore-service';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Stethoscope, CalendarDays, Clock, CheckCircle } from 'lucide-react';
+import { Stethoscope, CalendarDays, Clock, CheckCircle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { DateRange } from "react-day-picker"
+import type { DateRange } from "react-day-picker";
+import type { Doctor } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
+
+
+// Hardcoded patient ID for demonstration. In a real app, this would come from auth.
+const FAKE_PATIENT_ID = 'patient1';
 
 export default function DoctorDetailPage({ params }: { params: { id: string } }) {
   const { toast } = useToast();
-  const doctor = mockDoctors.find((d) => d.uid === params.id);
+  const router = useRouter();
+
+  const [doctor, setDoctor] = useState<Doctor | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [booking, setBooking] = useState(false);
   
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [symptoms, setSymptoms] = useState('');
 
+  useEffect(() => {
+    const fetchDoctor = async () => {
+        setLoading(true);
+        const fetchedDoctor = await getDoctor(params.id);
+        if (fetchedDoctor) {
+            setDoctor(fetchedDoctor);
+        }
+        setLoading(false);
+    }
+    fetchDoctor();
+  }, [params.id]);
+
+
+  if (loading) {
+    return <DoctorDetailSkeleton />;
+  }
+
   if (!doctor) {
     notFound();
   }
 
-  const handleBooking = () => {
+  const handleBooking = async () => {
     if (!date || !selectedTime || !symptoms) {
       toast({
         title: 'Incomplete Information',
@@ -37,16 +63,31 @@ export default function DoctorDetailPage({ params }: { params: { id: string } })
       });
       return;
     }
-    toast({
-      title: 'Appointment Booked!',
-      description: `Your appointment with ${doctor.name} is confirmed for ${date.toLocaleDateString()} at ${selectedTime}.`,
-      action: <div className="p-2 rounded-full bg-green-500"><CheckCircle className="text-white" /></div>
-    });
-    setSelectedTime(null);
-    setSymptoms('');
+    setBooking(true);
+    try {
+        await bookAppointment(doctor.uid, FAKE_PATIENT_ID, date, selectedTime, symptoms);
+        toast({
+            title: 'Appointment Booked!',
+            description: `Your appointment with ${doctor.name} is confirmed for ${date.toLocaleDateString()} at ${selectedTime}.`,
+            action: <div className="p-2 rounded-full bg-green-500"><CheckCircle className="text-white" /></div>
+        });
+        // Reset form and potentially redirect
+        setSelectedTime(null);
+        setSymptoms('');
+        router.push('/patient/appointments');
+    } catch (error) {
+        toast({
+            title: 'Booking Failed',
+            description: 'Could not book the appointment. Please try again.',
+            variant: 'destructive',
+        });
+    } finally {
+        setBooking(false);
+    }
   };
   
   const today = new Date();
+  today.setHours(0,0,0,0);
   const disabledDays: (Date | DateRange)[] = [
       { before: today }
   ];
@@ -90,7 +131,7 @@ export default function DoctorDetailPage({ params }: { params: { id: string } })
                             <Button 
                                 key={slot.time} 
                                 variant={selectedTime === slot.time ? 'default' : 'outline'}
-                                disabled={!slot.available}
+                                disabled={!slot.available || booking}
                                 onClick={() => slot.available && setSelectedTime(slot.time)}
                                 className={cn(!slot.available && "text-muted-foreground line-through")}
                             >
@@ -110,13 +151,51 @@ export default function DoctorDetailPage({ params }: { params: { id: string } })
                         rows={5}
                         value={symptoms}
                         onChange={(e) => setSymptoms(e.target.value)}
+                        disabled={booking}
                     />
                 </div>
-                <Button onClick={handleBooking} className="w-full text-lg py-6" size="lg">Confirm Booking</Button>
+                <Button onClick={handleBooking} disabled={booking} className="w-full text-lg py-6" size="lg">
+                    {booking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {booking ? 'Confirming...' : 'Confirm Booking'}
+                </Button>
             </div>
           </div>
         </CardContent>
       </Card>
     </div>
   );
+}
+
+
+function DoctorDetailSkeleton() {
+    return (
+        <div className="container mx-auto max-w-4xl">
+            <Card className="overflow-hidden shadow-lg">
+                <CardHeader className="bg-secondary/30 p-6">
+                    <div className="flex flex-col md:flex-row items-start gap-6">
+                        <Skeleton className="h-32 w-32 rounded-full" />
+                        <div className="pt-2 space-y-2 w-full">
+                            <Skeleton className="h-8 w-1/2" />
+                            <Skeleton className="h-6 w-1/4" />
+                            <Skeleton className="h-4 w-full mt-4" />
+                            <Skeleton className="h-4 w-5/6" />
+                        </div>
+                    </div>
+                </CardHeader>
+                <CardContent className="p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                            <Skeleton className="h-72 w-full" />
+                            <Skeleton className="h-24 w-full" />
+                        </div>
+                         <div className="space-y-6">
+                            <Skeleton className="h-8 w-1/2" />
+                            <Skeleton className="h-24 w-full" />
+                            <Skeleton className="h-12 w-full" />
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+    );
 }

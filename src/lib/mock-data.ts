@@ -1,4 +1,9 @@
+
 import type { Doctor, Patient, Appointment } from './types';
+
+// This file is now for reference on data structure, but is not used by the app.
+// Data is fetched from Firestore instead.
+// You will need to add this data to your Firestore instance.
 
 export const mockPatients: Patient[] = [
   {

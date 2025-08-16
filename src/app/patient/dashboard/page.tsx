@@ -1,28 +1,56 @@
+
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DoctorCard } from '@/components/patient/doctor-card';
 import { PageHeader } from '@/components/shared/page-header';
-import { mockDoctors } from '@/lib/mock-data';
+import { getDoctors } from '@/lib/firestore-service';
 import type { Doctor } from '@/lib/types';
 import { Stethoscope, Search } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function PatientDashboard() {
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [specialization, setSpecialization] = useState('all');
 
-  const specializations = useMemo(() => ['all', ...Array.from(new Set(mockDoctors.map(d => d.specialization)))], []);
+  useEffect(() => {
+    const fetchDoctors = async () => {
+      setLoading(true);
+      const fetchedDoctors = await getDoctors();
+      setDoctors(fetchedDoctors);
+      setLoading(false);
+    };
+    fetchDoctors();
+  }, []);
+
+  const specializations = useMemo(() => ['all', ...Array.from(new Set(doctors.map(d => d.specialization)))], [doctors]);
 
   const filteredDoctors = useMemo(() => {
-    return mockDoctors.filter((doctor) => {
+    return doctors.filter((doctor) => {
       const matchesSearch = doctor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                             doctor.specialization.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesSpecialization = specialization === 'all' || doctor.specialization === specialization;
       return matchesSearch && matchesSpecialization;
     });
-  }, [searchTerm, specialization]);
+  }, [searchTerm, specialization, doctors]);
+
+  const renderSkeleton = () => (
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {[...Array(3)].map((_, i) => (
+            <div key={i} className="flex flex-col space-y-3">
+                <Skeleton className="h-[125px] w-full rounded-xl" />
+                <div className="space-y-2">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-3/4" />
+                </div>
+            </div>
+        ))}
+    </div>
+  );
 
   return (
     <div className="container mx-auto">
@@ -55,16 +83,20 @@ export default function PatientDashboard() {
         </Select>
       </div>
       
-      {filteredDoctors.length > 0 ? (
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {filteredDoctors.map((doctor) => (
-            <DoctorCard key={doctor.uid} doctor={doctor} />
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-16">
-            <p className="text-muted-foreground">No doctors found matching your criteria.</p>
-        </div>
+      {loading ? renderSkeleton() : (
+        <>
+          {filteredDoctors.length > 0 ? (
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {filteredDoctors.map((doctor) => (
+                <DoctorCard key={doctor.uid} doctor={doctor} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-16">
+                <p className="text-muted-foreground">No doctors found matching your criteria.</p>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

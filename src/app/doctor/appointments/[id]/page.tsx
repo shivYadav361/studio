@@ -1,42 +1,76 @@
+
 'use client';
 
+import { useEffect, useState } from 'react';
 import { notFound } from 'next/navigation';
-import { mockAppointments, mockPatients } from '@/lib/mock-data';
+import { getAppointment, updateAppointment } from '@/lib/firestore-service';
 import { PageHeader } from '@/components/shared/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { FileText, User, Calendar, Clock, HeartPulse, CheckCircle } from 'lucide-react';
+import { FileText, User, Calendar, Clock, HeartPulse, CheckCircle, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
-import type { Appointment } from '@/lib/types';
-
+import type { Appointment, Patient } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AppointmentDetailsPage({ params }: { params: { id: string } }) {
   const { toast } = useToast();
-  const appointment = mockAppointments.find((a) => a.id === params.id);
-
-  if (!appointment) {
-    notFound();
-  }
-
-  const patient = mockPatients.find((p) => p.uid === appointment.patientId);
-
-  if (!patient) {
-    notFound();
-  }
   
-  const handleUpdate = () => {
-    toast({
-        title: "Appointment Updated",
-        description: "The appointment details have been saved successfully.",
-        action: <div className="p-2 rounded-full bg-green-500"><CheckCircle className="text-white" /></div>
-    });
+  const [data, setData] = useState<{appointment: Appointment, patient: Patient | null} | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
+
+  // Form state
+  const [status, setStatus] = useState<'booked' | 'checked' | 'cancelled'>('booked');
+  const [doctorNotes, setDoctorNotes] = useState('');
+
+  useEffect(() => {
+    const fetchAppointment = async () => {
+        setLoading(true);
+        const result = await getAppointment(params.id);
+        if(result) {
+            setData(result);
+            setStatus(result.appointment.status);
+            setDoctorNotes(result.appointment.doctorNotes || '');
+        }
+        setLoading(false);
+    }
+    fetchAppointment();
+  }, [params.id]);
+
+
+  if (loading) {
+    return <AppointmentDetailSkeleton />
+  }
+
+  if (!data || !data.appointment || !data.patient) {
+    notFound();
+  }
+
+  const { appointment, patient } = data;
+  
+  const handleUpdate = async () => {
+    setUpdating(true);
+    try {
+        await updateAppointment(appointment.id, status, doctorNotes);
+        toast({
+            title: "Appointment Updated",
+            description: "The appointment details have been saved successfully.",
+            action: <div className="p-2 rounded-full bg-green-500"><CheckCircle className="text-white" /></div>
+        });
+    } catch (error) {
+        toast({
+            title: 'Update Failed',
+            description: 'Could not update the appointment. Please try again.',
+            variant: 'destructive',
+        });
+    } finally {
+        setUpdating(false);
+    }
   }
 
   return (
@@ -55,7 +89,7 @@ export default function AppointmentDetailsPage({ params }: { params: { id: strin
                 <CardContent className="space-y-6">
                     <div>
                         <Label className="font-semibold">Appointment Status</Label>
-                        <RadioGroup defaultValue={appointment.status} className="flex gap-4 pt-2">
+                        <RadioGroup value={status} onValueChange={(val) => setStatus(val as any)} className="flex gap-4 pt-2">
                             <div className="flex items-center space-x-2">
                                 <RadioGroupItem value="booked" id="status-booked" />
                                 <Label htmlFor="status-booked">Booked</Label>
@@ -74,12 +108,16 @@ export default function AppointmentDetailsPage({ params }: { params: { id: strin
                         <Label htmlFor="doctor-notes" className="font-semibold">Doctor's Notes</Label>
                         <Textarea 
                             id="doctor-notes" 
-                            defaultValue={appointment.doctorNotes} 
+                            value={doctorNotes}
+                            onChange={(e) => setDoctorNotes(e.target.value)}
                             placeholder="Add notes about the consultation..."
                             rows={6}
                         />
                      </div>
-                     <Button onClick={handleUpdate}>Save Changes</Button>
+                     <Button onClick={handleUpdate} disabled={updating}>
+                        {updating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {updating ? "Saving..." : "Save Changes"}
+                     </Button>
                 </CardContent>
             </Card>
         </div>
@@ -113,3 +151,26 @@ export default function AppointmentDetailsPage({ params }: { params: { id: strin
     </div>
   );
 }
+
+function AppointmentDetailSkeleton() {
+    return (
+        <div className="container mx-auto max-w-4xl">
+            <div className="mb-8">
+                <div className="flex items-center gap-3 mb-2">
+                    <Skeleton className="h-8 w-8" />
+                    <Skeleton className="h-8 w-1/3" />
+                </div>
+                <Skeleton className="h-4 w-1/2" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="md:col-span-2 space-y-4">
+                    <Skeleton className="h-64 w-full" />
+                </div>
+                <div>
+                    <Skeleton className="h-80 w-full" />
+                </div>
+            </div>
+        </div>
+    );
+}
+
