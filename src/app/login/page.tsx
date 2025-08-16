@@ -28,10 +28,10 @@ export default function LoginPage() {
               <Input id="password" type="password" required />
             </div>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Button asChild className="w-full">
+              <Button asChild className="w-full gap-2">
                 <Link href="/patient/dashboard"><User /> Login as Patient</Link>
               </Button>
-              <Button asChild variant="secondary" className="w-full">
+              <Button asChild variant="secondary" className="w-full gap-2">
                 <Link href="/doctor/dashboard"><Stethoscope /> Login as Doctor</Link>
               </Button>
             </div>
