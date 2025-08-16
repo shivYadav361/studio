@@ -1,9 +1,8 @@
-import { AppLayout } from '@/components/shared/app-layout';
+import { AppLayout, type NavItem } from '@/components/shared/app-layout';
 import { mockDoctors } from '@/lib/mock-data';
-import { LayoutDashboard } from 'lucide-react';
 
-const navItems = [
-  { href: '/doctor/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+const navItems: NavItem[] = [
+  { href: '/doctor/dashboard', label: 'Dashboard', icon: 'LayoutDashboard' },
 ];
 
 export default function DoctorLayout({ children }: { children: React.ReactNode }) {

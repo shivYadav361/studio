@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, LogOut, type LucideIcon } from 'lucide-react';
+import { Menu, LogOut, type LucideIcon, LayoutDashboard, CalendarCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -11,10 +11,15 @@ import { Logo } from './logo';
 import { cn } from '@/lib/utils';
 import type { User } from '@/lib/types';
 
-interface NavItem {
+const iconMap: Record<string, LucideIcon> = {
+  LayoutDashboard,
+  CalendarCheck,
+};
+
+export interface NavItem {
   href: string;
   label: string;
-  icon: LucideIcon;
+  icon: string;
 }
 
 interface AppLayoutProps {
@@ -28,19 +33,22 @@ export function AppLayout({ user, navItems, children }: AppLayoutProps) {
 
   const renderNavLinks = (isMobile = false) => (
     <nav className={cn("flex flex-col gap-2", isMobile ? "mt-6" : "items-center")}>
-      {navItems.map((item) => (
-        <Button
-          key={item.href}
-          variant={pathname.startsWith(item.href) ? 'secondary' : 'ghost'}
-          className="justify-start gap-2"
-          asChild
-        >
-          <Link href={item.href}>
-            <item.icon className="h-5 w-5" />
-            <span>{item.label}</span>
-          </Link>
-        </Button>
-      ))}
+      {navItems.map((item) => {
+        const Icon = iconMap[item.icon];
+        return (
+            <Button
+              key={item.href}
+              variant={pathname.startsWith(item.href) ? 'secondary' : 'ghost'}
+              className="justify-start gap-2"
+              asChild
+            >
+              <Link href={item.href}>
+                {Icon && <Icon className="h-5 w-5" />}
+                <span>{item.label}</span>
+              </Link>
+            </Button>
+        );
+      })}
     </nav>
   );
 
