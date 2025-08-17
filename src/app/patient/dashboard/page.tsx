@@ -28,25 +28,42 @@ export default function PatientDashboard() {
     fetchDoctors();
   }, []);
 
-  const specializations = useMemo(() => ['all', ...Array.from(new Set(doctors.map(d => d.specialization)))], [doctors]);
+  const specializations = useMemo(() => {
+    if (loading) return ['all'];
+    const uniqueSpecializations = new Set(doctors.map(d => d.specialization));
+    return ['all', ...Array.from(uniqueSpecializations)];
+  }, [doctors, loading]);
 
   const filteredDoctors = useMemo(() => {
+    if (loading) {
+      return [];
+    }
     return doctors.filter((doctor) => {
       const matchesSearch = doctor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                             doctor.specialization.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesSpecialization = specialization === 'all' || doctor.specialization === specialization;
       return matchesSearch && matchesSpecialization;
     });
-  }, [searchTerm, specialization, doctors]);
+  }, [searchTerm, specialization, doctors, loading]);
 
   const renderSkeleton = () => (
     <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {[...Array(3)].map((_, i) => (
-            <div key={i} className="flex flex-col space-y-3">
-                <Skeleton className="h-[125px] w-full rounded-xl" />
-                <div className="space-y-2">
+        {[...Array(6)].map((_, i) => (
+            <div key={i} className="flex flex-col space-y-3 rounded-lg border bg-card p-4">
+                <div className="flex items-center gap-4">
+                    <Skeleton className="h-16 w-16 rounded-full" />
+                    <div className="space-y-2">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-4 w-24" />
+                    </div>
+                </div>
+                <div className="space-y-2 pt-2">
                     <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-5/6" />
+                </div>
+                 <div className="pt-4">
+                    <Skeleton className="h-10 w-full" />
                 </div>
             </div>
         ))}
@@ -60,7 +77,7 @@ export default function PatientDashboard() {
         description="Search for and book appointments with our expert doctors."
         icon={Stethoscope}
       />
-      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2">
         <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <Input
@@ -68,9 +85,10 @@ export default function PatientDashboard() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
+                disabled={loading}
             />
         </div>
-        <Select value={specialization} onValueChange={setSpecialization}>
+        <Select value={specialization} onValueChange={setSpecialization} disabled={loading}>
           <SelectTrigger>
             <SelectValue placeholder="Filter by specialization" />
           </SelectTrigger>
@@ -93,8 +111,9 @@ export default function PatientDashboard() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-16">
-                <p className="text-muted-foreground">No doctors found matching your criteria.</p>
+            <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 py-24 text-center">
+                <h3 className="text-xl font-semibold tracking-tight">No Doctors Found</h3>
+                <p className="text-muted-foreground">Please try adjusting your search or filter criteria.</p>
             </div>
           )}
         </>
