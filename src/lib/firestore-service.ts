@@ -12,13 +12,13 @@ import { Timestamp } from 'firebase/firestore';
 
 export async function getUser(uid: string): Promise<User | null> {
     const patientDoc = await getDoc(doc(db, 'patients', uid));
-    if (patientDoc.exists()) return { uid: patientDoc.id, ...patientDoc.data() } as Patient;
+    if (patientDoc.exists()) return { uid: patientDoc.id, ...patientDoc.data(), role: 'patient' } as User;
 
     const doctorDoc = await getDoc(doc(db, 'doctors', uid));
-    if (doctorDoc.exists()) return { uid: doctorDoc.id, ...doctorDoc.data() } as Doctor;
+    if (doctorDoc.exists()) return { uid: doctorDoc.id, ...doctorDoc.data(), role: 'doctor' } as User;
 
     const adminDoc = await getDoc(doc(db, 'admins', uid));
-    if (adminDoc.exists()) return { uid: adminDoc.id, ...adminDoc.data() } as User;
+    if (adminDoc.exists()) return { uid: adminDoc.id, ...adminDoc.data(), role: 'admin' } as User;
 
     return null;
 }
@@ -52,7 +52,7 @@ export async function createDoctor(doctorData: Omit<Doctor, 'uid' | 'role' | 'av
 
     // This is a temporary auth instance to create the user without signing in the admin as that user
     // This is a known workaround for a limitation in the Firebase Web SDK.
-    const { initializeApp } = await import('firebase/app');
+    const { initializeApp, deleteApp } = await import('firebase/app');
     const { getAuth: getAdminAuth, createUserWithEmailAndPassword: createAdminUser } = await import("firebase/auth");
     
     // Create a temporary, uniquely named app instance to avoid conflicts
@@ -64,36 +64,34 @@ export async function createDoctor(doctorData: Omit<Doctor, 'uid' | 'role' | 'av
     try {
         const userCredential = await createAdminUser(tempAuth, doctorData.email, doctorData.password);
         uid = userCredential.user.uid;
+
+        const doctorDocRef = doc(db, 'doctors', uid);
+        
+        const dataToSave: Omit<Doctor, 'uid' | 'avatarUrl' | 'role'> & {role: 'doctor'} = {
+            name: doctorData.name,
+            email: doctorData.email,
+            role: 'doctor',
+            specialization: doctorData.specialization,
+            bio: doctorData.bio,
+            availableDays: doctorData.availableDays,
+            availableTimes: doctorData.availableTimes,
+            degree: doctorData.degree,
+            fees: doctorData.fees,
+            isActive: doctorData.isActive,
+        };
+
+        await setDoc(doctorDocRef, { ...dataToSave, avatarUrl: `https://placehold.co/128x128.png` });
+
     } catch (e: any) {
-        // Clean up the temporary app instance
-        const { deleteApp } = await import('firebase/app');
-        await deleteApp(tempApp);
         if (e.code === 'auth/email-already-in-use') {
             throw new Error("A user with this email already exists in Firebase Authentication.");
         }
         throw e;
+    } finally {
+        // Clean up the temporary app instance after successful creation or on error
+        await deleteApp(tempApp);
     }
-
-    // Clean up the temporary app instance after successful creation
-    const { deleteApp } = await import('firebase/app');
-    await deleteApp(tempApp);
-
-    const doctorDocRef = doc(db, 'doctors', uid);
     
-    const dataToSave: Omit<Doctor, 'uid' | 'avatarUrl' | 'role'> & {role: 'doctor'} = {
-        name: doctorData.name,
-        email: doctorData.email,
-        role: 'doctor',
-        specialization: doctorData.specialization,
-        bio: doctorData.bio,
-        availableDays: doctorData.availableDays,
-        availableTimes: doctorData.availableTimes,
-        degree: doctorData.degree,
-        fees: doctorData.fees,
-        isActive: doctorData.isActive,
-    };
-
-    await setDoc(doctorDocRef, { ...dataToSave, avatarUrl: `https://placehold.co/128x128.png` });
     return uid;
 }
 
@@ -103,9 +101,9 @@ export async function saveDoctor(doctorData: Omit<Doctor, 'role' | 'avatarUrl'> 
     const { uid, ...data } = doctorData;
     const doctorDocRef = doc(db, 'doctors', uid);
     
-    const dataToSave: Omit<Doctor, 'uid' | 'avatarUrl' | 'email' | 'role'> & {role: 'doctor'} = {
+    // We only update fields that can be changed from the form, leaving email and role untouched.
+    const dataToSave: Partial<Omit<Doctor, 'uid' | 'email' | 'role' | 'avatarUrl'>> = {
         name: data.name,
-        role: 'doctor',
         specialization: data.specialization,
         bio: data.bio,
         availableDays: data.availableDays,
@@ -123,8 +121,6 @@ export async function getDoctors(options: { activeOnly?: boolean } = {}): Promis
     const { activeOnly = false } = options;
     let doctorsQuery = query(collection(db, 'doctors'));
 
-    // This is the correct way to query. If a patient is querying, we only show active doctors.
-    // If an admin is querying (activeOnly = false), we show all doctors.
     if (activeOnly) {
         doctorsQuery = query(doctorsQuery, where("isActive", "==", true));
     }
