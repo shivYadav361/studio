@@ -42,13 +42,10 @@ function VerifyOtpPage() {
         }
 
         const recaptcha = generateRecaptcha();
-        if (recaptcha) {
-            const confirmation = await signInWithPhoneNumber(auth, patient.phone, recaptcha);
-            setConfirmationResult(confirmation);
-            toast({ title: 'OTP Sent', description: `An OTP has been sent to ${patient.phone}.` });
-        } else {
-             toast({ title: 'Error', description: 'Could not initialize reCAPTCHA.', variant: 'destructive' });
-        }
+        const confirmation = await signInWithPhoneNumber(auth, patient.phone, recaptcha);
+        setConfirmationResult(confirmation);
+        toast({ title: 'OTP Sent', description: `An OTP has been sent to ${patient.phone}.` });
+
       } catch (error: any) {
         console.error("OTP Send Error:", error);
         toast({ title: 'OTP Error', description: `Failed to send OTP. ${error.message}`, variant: 'destructive' });
@@ -56,8 +53,12 @@ function VerifyOtpPage() {
         setSendingOtp(false);
       }
     };
-    sendOtp();
-  }, [uid, router, toast]);
+
+    if (uid) {
+        sendOtp();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uid]);
 
   const handleVerifyOtp = async () => {
     if (!otp || otp.length !== 6) {
