@@ -5,14 +5,14 @@ import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyDTWWMd5p3FUYpoOOsXpQZ5GFmOfV7WqwQ",
-    authDomain: "hospital-management-7d105.firebaseapp.com",
-    projectId: "hospital-management-7d105",
-    storageBucket: "hospital-management-7d105.firebasestorage.app",
-    messagingSenderId: "53540545971",
-    appId: "1:53540545971:web:72d8c7ada6257169f857c6",
-    measurementId: "G-GHPMMYENV1"
-  };
+  "projectId": "medipoint-akoz6",
+  "appId": "1:47680034904:web:a0594bfde08b409bd5d22d",
+  "storageBucket": "medipoint-akoz6.firebasestorage.app",
+  "apiKey": "AIzaSyBA9mZh28RAjlsjEws0QNdsqDFCadFhFaM",
+  "authDomain": "medipoint-akoz6.firebaseapp.com",
+  "measurementId": "",
+  "messagingSenderId": "47680034904"
+};
   
 
 // Initialize Firebase
