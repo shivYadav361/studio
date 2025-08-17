@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import type { Doctor } from '@/lib/types';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -12,7 +11,7 @@ export function DoctorCard({ doctor }: { doctor: Doctor }) {
     <Card className="flex flex-col overflow-hidden transition-transform duration-300 ease-in-out hover:scale-105 hover:shadow-xl">
       <CardHeader className="flex flex-row items-center gap-4 bg-secondary/50 p-4">
         <Avatar className="h-16 w-16 border-2 border-background shadow-md">
-          <AvatarImage src={doctor.avatarUrl} alt={`Dr. ${doctor.name}`} data-ai-hint="doctor portrait" />
+          <AvatarImage src={doctor.avatarUrl} alt={`Dr. ${doctor.name}`} />
           <AvatarFallback>{doctor.name.charAt(0)}</AvatarFallback>
         </Avatar>
         <div>

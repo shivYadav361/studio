@@ -104,7 +104,7 @@ export default function DoctorDetailPage({ params }: { params: { id: string } })
         <CardHeader className="bg-secondary/30 p-6">
             <div className="flex flex-col md:flex-row items-start gap-6">
                 <Avatar className="h-32 w-32 border-4 border-background shadow-xl">
-                    <AvatarImage src={doctor.avatarUrl} alt={doctor.name} data-ai-hint="doctor portrait" />
+                    <AvatarImage src={doctor.avatarUrl} alt={doctor.name} />
                     <AvatarFallback className="text-4xl">{doctor.name.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div className="pt-2">
