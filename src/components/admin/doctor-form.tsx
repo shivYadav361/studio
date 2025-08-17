@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { saveDoctor } from '@/lib/firestore-service';
+import { createDoctor, saveDoctor } from '@/lib/firestore-service';
 import type { Doctor } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 
@@ -63,24 +63,26 @@ export function DoctorForm({ isOpen, onOpenChange, doctor, onSuccess }: DoctorFo
   });
 
   useEffect(() => {
-    if (doctor) {
-      reset({
-        uid: doctor.uid,
-        name: doctor.name,
-        email: doctor.email,
-        password: '', // Don't pre-fill password
-        specialization: doctor.specialization,
-        degree: doctor.degree,
-        fees: doctor.fees,
-        bio: doctor.bio,
-        availableDays: doctor.availableDays,
-        availableTimes: doctor.availableTimes.map(t => t.time),
-        isActive: doctor.isActive ?? true,
-      });
-    } else {
-      reset({
-        name: '', email: '', password: '', specialization: '', degree: '', fees: 100, bio: '', availableDays: [], availableTimes: [], isActive: true
-      });
+    if (isOpen) {
+        if (doctor) {
+          reset({
+            uid: doctor.uid,
+            name: doctor.name,
+            email: doctor.email,
+            password: '', // Don't pre-fill password
+            specialization: doctor.specialization,
+            degree: doctor.degree,
+            fees: doctor.fees,
+            bio: doctor.bio,
+            availableDays: doctor.availableDays,
+            availableTimes: doctor.availableTimes.map(t => t.time),
+            isActive: doctor.isActive ?? true,
+          });
+        } else {
+          reset({
+            name: '', email: '', password: '', specialization: '', degree: '', fees: 100, bio: '', availableDays: [], availableTimes: [], isActive: true
+          });
+        }
     }
   }, [doctor, reset, isOpen]);
 
@@ -91,13 +93,20 @@ export function DoctorForm({ isOpen, onOpenChange, doctor, onSuccess }: DoctorFo
             ...data,
             availableTimes: data.availableTimes.map(time => ({ time, available: true })),
         };
-        if (!doctor?.uid && !data.password) {
-            toast({ title: 'Error', description: 'Password is required for new doctors.', variant: 'destructive' });
-            setLoading(false);
-            return;
+        
+        if (doctor?.uid) {
+            // This is an existing doctor, so we update
+            await saveDoctor({ ...doctorPayload, uid: doctor.uid });
+        } else {
+            // This is a new doctor, so we create
+            if (!doctorPayload.password) {
+                toast({ title: 'Error', description: 'Password is required for new doctors.', variant: 'destructive' });
+                setLoading(false);
+                return;
+            }
+            await createDoctor(doctorPayload);
         }
 
-        await saveDoctor(doctorPayload);
         toast({ title: 'Success', description: `Doctor ${doctor ? 'updated' : 'added'} successfully.` });
         onSuccess();
     } catch (error: any) {

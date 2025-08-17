@@ -2,7 +2,7 @@
 'use client';
 
 import { db, auth } from './firebase';
-import { collection, getDocs, doc, getDoc, updateDoc, addDoc, query, where, setDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, updateDoc, addDoc, query, where, setDoc, deleteDoc } from 'firebase/firestore';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import type { Doctor, Patient, Appointment, User } from './types';
 import { Timestamp } from 'firebase/firestore';
@@ -29,11 +29,11 @@ export async function getUserRole(uid: string): Promise<'patient' | 'doctor' | '
 }
 
 
-export async function createUserInFirestore(uid: string, name: string, email: string, role: 'patient' | 'doctor') {
-    const collectionName = role === 'patient' ? 'patients' : 'doctors';
+export async function createUserInFirestore(uid: string, name: string, email: string, role: 'patient') {
+    const collectionName = 'patients';
     const userDocRef = doc(db, collectionName, uid);
 
-    let userData: Partial<Patient | Doctor> = {
+    const userData: Partial<Patient> = {
         uid,
         name,
         email,
@@ -41,50 +41,46 @@ export async function createUserInFirestore(uid: string, name: string, email: st
         avatarUrl: `https://placehold.co/100x100.png`,
     };
 
-    if (role === 'doctor') {
-        userData = {
-            ...userData,
-            specialization: 'General Medicine', // Default value
-            bio: 'Newly registered doctor.', // Default value
-            availableDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'], // Default
-            availableTimes: [
-                { time: '09:00 AM', available: true }, { time: '10:00 AM', available: true },
-                { time: '11:00 AM', available: true }, { time: '01:00 PM', available: true },
-                { time: '02:00 PM', available: true }, { time: '03:00 PM', available: true },
-            ],
-            degree: 'MD',
-            fees: 100,
-            isActive: true,
-        } as Partial<Doctor>;
-    }
-
     await setDoc(userDocRef, userData);
 }
 
-export async function saveDoctor(doctorData: Omit<Doctor, 'uid' | 'role' | 'avatarUrl'> & { uid?: string, password?: string }) {
-    let uid = doctorData.uid;
-
-    if (!uid && doctorData.password) {
-        // This flow is for creating a new user from the admin panel
-        try {
-            // This is a temporary auth instance to create the user without signing in the admin as that user
-            const { getAuth: getAdminAuth, createUserWithEmailAndPassword: createAdminUser } = await import("firebase/auth");
-            const tempAuth = getAdminAuth();
-            const userCredential = await createAdminUser(tempAuth, doctorData.email, doctorData.password);
-            uid = userCredential.user.uid;
-        } catch (e: any) {
-            if (e.code === 'auth/email-already-in-use') {
-                throw new Error("A user with this email already exists in Firebase Authentication.");
-            }
-            throw e;
-        }
-    } else if (!uid) {
+// Function to create a new doctor (Auth user + Firestore doc)
+export async function createDoctor(doctorData: Omit<Doctor, 'uid' | 'role' | 'avatarUrl'> & { password?: string }) {
+    if (!doctorData.password) {
         throw new Error("Password is required to create a new doctor.");
     }
+
+    // This is a temporary auth instance to create the user without signing in the admin as that user
+    // This is a known workaround for a limitation in the Firebase Web SDK.
+    const { initializeApp } = await import('firebase/app');
+    const { getAuth: getAdminAuth, createUserWithEmailAndPassword: createAdminUser } = await import("firebase/auth");
     
+    // Create a temporary, uniquely named app instance to avoid conflicts
+    const tempAppName = `temp-auth-app-${Date.now()}`;
+    const tempApp = initializeApp(auth.app.options, tempAppName);
+    const tempAuth = getAdminAuth(tempApp);
+
+    let uid;
+    try {
+        const userCredential = await createAdminUser(tempAuth, doctorData.email, doctorData.password);
+        uid = userCredential.user.uid;
+    } catch (e: any) {
+        // Clean up the temporary app instance
+        const { deleteApp } = await import('firebase/app');
+        await deleteApp(tempApp);
+        if (e.code === 'auth/email-already-in-use') {
+            throw new Error("A user with this email already exists in Firebase Authentication.");
+        }
+        throw e;
+    }
+
+    // Clean up the temporary app instance after successful creation
+    const { deleteApp } = await import('firebase/app');
+    await deleteApp(tempApp);
+
     const doctorDocRef = doc(db, 'doctors', uid);
     
-    const dataToSave: Omit<Doctor, 'uid' | 'avatarUrl'> = {
+    const dataToSave: Omit<Doctor, 'uid' | 'avatarUrl' | 'role'> & {role: 'doctor'} = {
         name: doctorData.name,
         email: doctorData.email,
         role: 'doctor',
@@ -97,14 +93,29 @@ export async function saveDoctor(doctorData: Omit<Doctor, 'uid' | 'role' | 'avat
         isActive: doctorData.isActive,
     };
 
-    // Use a placeholder if avatarUrl isn't already set
-    const existingDoc = await getDoc(doctorDocRef);
-    const avatarUrl = existingDoc.exists() && existingDoc.data().avatarUrl 
-        ? existingDoc.data().avatarUrl 
-        : `https://placehold.co/128x128.png`;
-
-    await setDoc(doctorDocRef, { ...dataToSave, avatarUrl }, { merge: true });
+    await setDoc(doctorDocRef, { ...dataToSave, avatarUrl: `https://placehold.co/128x128.png` });
     return uid;
+}
+
+
+// Function to update an existing doctor
+export async function saveDoctor(doctorData: Omit<Doctor, 'role' | 'avatarUrl'> & { uid: string }) {
+    const { uid, ...data } = doctorData;
+    const doctorDocRef = doc(db, 'doctors', uid);
+    
+    const dataToSave: Omit<Doctor, 'uid' | 'avatarUrl' | 'email' | 'role'> & {role: 'doctor'} = {
+        name: data.name,
+        role: 'doctor',
+        specialization: data.specialization,
+        bio: data.bio,
+        availableDays: data.availableDays,
+        availableTimes: data.availableTimes,
+        degree: data.degree,
+        fees: data.fees,
+        isActive: data.isActive,
+    };
+
+    await updateDoc(doctorDocRef, dataToSave);
 }
 
 
@@ -112,6 +123,8 @@ export async function getDoctors(options: { activeOnly?: boolean } = {}): Promis
     const { activeOnly = false } = options;
     let doctorsQuery = query(collection(db, 'doctors'));
 
+    // This is the correct way to query. If a patient is querying, we only show active doctors.
+    // If an admin is querying (activeOnly = false), we show all doctors.
     if (activeOnly) {
         doctorsQuery = query(doctorsQuery, where("isActive", "==", true));
     }
