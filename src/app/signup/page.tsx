@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Logo } from '@/components/shared/logo';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -23,11 +22,10 @@ export default function SignupPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<'patient' | 'doctor'>('patient');
   const [loading, setLoading] = useState(false);
 
   const handleSignup = async () => {
-    if (!name || !email || !password || !role) {
+    if (!name || !email || !password) {
         toast({ title: 'Error', description: 'Please fill out all fields.', variant: 'destructive' });
         return;
     }
@@ -37,7 +35,8 @@ export default function SignupPage() {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
-        await createUserInFirestore(user.uid, name, email, role);
+        // All signups from this page are for patients
+        await createUserInFirestore(user.uid, name, email, 'patient');
 
         toast({
             title: 'Account Created!',
@@ -65,7 +64,7 @@ export default function SignupPage() {
         <Card className="shadow-2xl">
           <CardHeader className="items-center text-center">
             <Logo className="mb-4" />
-            <CardTitle className="text-3xl font-bold">Create an Account</CardTitle>
+            <CardTitle className="text-3xl font-bold">Create a Patient Account</CardTitle>
             <CardDescription>Join MediPoint to manage your health with ease.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -80,19 +79,6 @@ export default function SignupPage() {
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input id="password" type="password" required value={password} onChange={e => setPassword(e.target.value)} disabled={loading} />
-            </div>
-            <div className="space-y-2">
-              <Label>I am a...</Label>
-              <RadioGroup value={role} onValueChange={(value: 'patient' | 'doctor') => setRole(value)} className="flex gap-4 pt-2" disabled={loading}>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="patient" id="role-patient" />
-                  <Label htmlFor="role-patient">Patient</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="doctor" id="role-doctor" />
-                  <Label htmlFor="role-doctor">Doctor</Label>
-                </div>
-              </RadioGroup>
             </div>
             <Button onClick={handleSignup} disabled={loading} className="w-full">
               {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Create Account'}
