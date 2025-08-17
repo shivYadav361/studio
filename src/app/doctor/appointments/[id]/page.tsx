@@ -54,9 +54,9 @@ export default function AppointmentDetailsPage({ params }: { params: { id: strin
                 })
             );
 
-            // Filter out the current appointment and sort by date
+            // Filter to show only *completed* past appointments, sorted by date
             const sortedHistory = populatedHistory
-                .filter(a => a.id !== params.id)
+                .filter(a => a.id !== params.id && a.status === 'completed')
                 .sort((a, b) => b.appointmentDate.getTime() - a.appointmentDate.getTime());
             
             setPatientHistory(sortedHistory);
