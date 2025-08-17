@@ -65,7 +65,7 @@ export default function SignupPage() {
           <CardHeader className="items-center text-center">
             <Logo className="mb-4" />
             <CardTitle className="text-3xl font-bold">Create a Patient Account</CardTitle>
-            <CardDescription>Join MediPoint to manage your health with ease.</CardDescription>
+            <CardDescription>Join HealthHarbor to manage your health with ease.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-2">

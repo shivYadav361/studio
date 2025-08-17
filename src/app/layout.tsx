@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/toaster"
 import AuthProvider from '@/hooks/use-auth.tsx';
 
 export const metadata: Metadata = {
-  title: 'MediPoint',
+  title: 'HealthHarbor',
   description: 'Your trusted health partner',
 };
 
