@@ -19,8 +19,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // Add the following line to enable static export
-  output: 'export',
 };
 
 export default nextConfig;
