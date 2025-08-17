@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { saveDoctor } from '@/lib/firestore-service';
 import type { Doctor } from '@/lib/types';
@@ -30,6 +31,7 @@ const doctorFormSchema = z.object({
   bio: z.string().min(10, 'Bio must be at least 10 characters.'),
   availableDays: z.array(z.string()).min(1, 'Select at least one available day.'),
   availableTimes: z.array(z.string()).min(1, 'Select at least one available time slot.'),
+  isActive: z.boolean().default(true),
 });
 
 type DoctorFormValues = z.infer<typeof doctorFormSchema>;
@@ -56,6 +58,7 @@ export function DoctorForm({ isOpen, onOpenChange, doctor, onSuccess }: DoctorFo
       bio: '',
       availableDays: [],
       availableTimes: [],
+      isActive: true,
     }
   });
 
@@ -65,16 +68,18 @@ export function DoctorForm({ isOpen, onOpenChange, doctor, onSuccess }: DoctorFo
         uid: doctor.uid,
         name: doctor.name,
         email: doctor.email,
+        password: '', // Don't pre-fill password
         specialization: doctor.specialization,
         degree: doctor.degree,
         fees: doctor.fees,
         bio: doctor.bio,
         availableDays: doctor.availableDays,
         availableTimes: doctor.availableTimes.map(t => t.time),
+        isActive: doctor.isActive ?? true,
       });
     } else {
       reset({
-        name: '', email: '', password: '', specialization: '', degree: '', fees: 100, bio: '', availableDays: [], availableTimes: []
+        name: '', email: '', password: '', specialization: '', degree: '', fees: 100, bio: '', availableDays: [], availableTimes: [], isActive: true
       });
     }
   }, [doctor, reset]);
@@ -118,7 +123,7 @@ export function DoctorForm({ isOpen, onOpenChange, doctor, onSuccess }: DoctorFo
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" {...register('email')} />
+                    <Input id="email" type="email" {...register('email')} disabled={!!doctor} />
                     {errors.email && <p className="text-destructive text-sm">{errors.email.message}</p>}
                 </div>
                 {!doctor && (
@@ -143,6 +148,18 @@ export function DoctorForm({ isOpen, onOpenChange, doctor, onSuccess }: DoctorFo
                     <Input id="fees" type="number" {...register('fees')} />
                     {errors.fees && <p className="text-destructive text-sm">{errors.fees.message}</p>}
                 </div>
+                 <div className="space-y-2">
+                    <Controller
+                        name="isActive"
+                        control={control}
+                        render={({ field }) => (
+                            <div className="flex items-center space-x-2 pt-6">
+                                <Switch id="isActive" checked={field.value} onCheckedChange={field.onChange} />
+                                <Label htmlFor="isActive">Active Status</Label>
+                            </div>
+                        )}
+                    />
+                </div>
                 <div className="space-y-2 col-span-2">
                     <Label htmlFor="bio">Biography</Label>
                     <Textarea id="bio" {...register('bio')} />
@@ -164,7 +181,7 @@ export function DoctorForm({ isOpen, onOpenChange, doctor, onSuccess }: DoctorFo
                                         checked={field.value?.includes(day)}
                                         onCheckedChange={(checked) => {
                                             return checked
-                                                ? field.onChange([...field.value, day])
+                                                ? field.onChange([...(field.value || []), day])
                                                 : field.onChange(field.value?.filter((value) => value !== day))
                                         }}
                                     />
@@ -191,7 +208,7 @@ export function DoctorForm({ isOpen, onOpenChange, doctor, onSuccess }: DoctorFo
                                         checked={field.value?.includes(time)}
                                         onCheckedChange={(checked) => {
                                             return checked
-                                                ? field.onChange([...field.value, time])
+                                                ? field.onChange([...(field.value || []), time])
                                                 : field.onChange(field.value?.filter((value) => value !== time))
                                         }}
                                     />

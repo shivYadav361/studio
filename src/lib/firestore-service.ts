@@ -54,6 +54,7 @@ export async function createUserInFirestore(uid: string, name: string, email: st
             ],
             degree: 'MD',
             fees: 100,
+            isActive: true,
         } as Partial<Doctor>;
     }
 
@@ -64,18 +65,26 @@ export async function saveDoctor(doctorData: Omit<Doctor, 'uid' | 'role' | 'avat
     let uid = doctorData.uid;
 
     if (!uid && doctorData.password) {
-        // Create a new user in Firebase Auth
-        const userCredential = await createUserWithEmailAndPassword(auth, doctorData.email, doctorData.password);
-        uid = userCredential.user.uid;
+        // This flow is for creating a new user from the admin panel
+        try {
+            // This is a temporary auth instance to create the user without signing in the admin as that user
+            const { getAuth: getAdminAuth, createUserWithEmailAndPassword: createAdminUser } = await import("firebase/auth");
+            const tempAuth = getAdminAuth();
+            const userCredential = await createAdminUser(tempAuth, doctorData.email, doctorData.password);
+            uid = userCredential.user.uid;
+        } catch (e: any) {
+            if (e.code === 'auth/email-already-in-use') {
+                throw new Error("A user with this email already exists in Firebase Authentication.");
+            }
+            throw e;
+        }
     } else if (!uid) {
         throw new Error("Password is required to create a new doctor.");
     }
     
-    // Create or update the doctor document in Firestore
     const doctorDocRef = doc(db, 'doctors', uid);
     
-    // Explicitly define the data to be saved to ensure type safety
-    const dataToSave: Omit<Doctor, 'uid'> = {
+    const dataToSave: Omit<Doctor, 'uid' | 'avatarUrl'> = {
         name: doctorData.name,
         email: doctorData.email,
         role: 'doctor',
@@ -85,17 +94,29 @@ export async function saveDoctor(doctorData: Omit<Doctor, 'uid' | 'role' | 'avat
         availableTimes: doctorData.availableTimes,
         degree: doctorData.degree,
         fees: doctorData.fees,
-        avatarUrl: `https://placehold.co/128x128.png`,
+        isActive: doctorData.isActive,
     };
 
-    await setDoc(doctorDocRef, dataToSave, { merge: true });
+    // Use a placeholder if avatarUrl isn't already set
+    const existingDoc = await getDoc(doctorDocRef);
+    const avatarUrl = existingDoc.exists() && existingDoc.data().avatarUrl 
+        ? existingDoc.data().avatarUrl 
+        : `https://placehold.co/128x128.png`;
+
+    await setDoc(doctorDocRef, { ...dataToSave, avatarUrl }, { merge: true });
     return uid;
 }
 
 
-export async function getDoctors(): Promise<Doctor[]> {
-    const doctorsCol = collection(db, 'doctors');
-    const doctorSnapshot = await getDocs(doctorsCol);
+export async function getDoctors(options: { activeOnly?: boolean } = {}): Promise<Doctor[]> {
+    const { activeOnly = false } = options;
+    let doctorsQuery = query(collection(db, 'doctors'));
+
+    if (activeOnly) {
+        doctorsQuery = query(doctorsQuery, where("isActive", "==", true));
+    }
+
+    const doctorSnapshot = await getDocs(doctorsQuery);
     const doctorList = doctorSnapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as Doctor));
     return doctorList;
 }

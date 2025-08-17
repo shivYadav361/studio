@@ -17,6 +17,7 @@ export interface Doctor extends User {
   bio: string;
   degree: string;
   fees: number;
+  isActive?: boolean;
 }
 
 export interface Patient extends User {

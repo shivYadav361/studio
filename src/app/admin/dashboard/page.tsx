@@ -10,9 +10,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { PlusCircle, Users } from 'lucide-react';
+import { PlusCircle, Users, Pencil } from 'lucide-react';
 import { DoctorForm } from '@/components/admin/doctor-form';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 
 export default function AdminDashboardPage() {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
@@ -22,7 +23,8 @@ export default function AdminDashboardPage() {
 
   const fetchDoctors = async () => {
     setLoading(true);
-    const fetchedDoctors = await getDoctors();
+    // Admin gets all doctors, active or not
+    const fetchedDoctors = await getDoctors({ activeOnly: false });
     setDoctors(fetchedDoctors);
     setLoading(false);
   };
@@ -39,6 +41,11 @@ export default function AdminDashboardPage() {
 
   const openNewDoctorForm = () => {
     setSelectedDoctor(null);
+    setIsFormOpen(true);
+  }
+
+  const openEditDoctorForm = (doctor: Doctor) => {
+    setSelectedDoctor(doctor);
     setIsFormOpen(true);
   }
 
@@ -67,7 +74,9 @@ export default function AdminDashboardPage() {
                     <TableRow>
                         <TableHead>Name</TableHead>
                         <TableHead>Specialization</TableHead>
+                        <TableHead>Status</TableHead>
                         <TableHead>Email</TableHead>
+                        <TableHead>Actions</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -75,7 +84,9 @@ export default function AdminDashboardPage() {
                         <TableRow key={i}>
                             <TableCell><Skeleton className="h-6 w-32" /></TableCell>
                             <TableCell><Skeleton className="h-6 w-24" /></TableCell>
+                            <TableCell><Skeleton className="h-6 w-16" /></TableCell>
                             <TableCell><Skeleton className="h-6 w-48" /></TableCell>
+                            <TableCell><Skeleton className="h-8 w-8" /></TableCell>
                         </TableRow>
                     ))}
                 </TableBody>
@@ -86,9 +97,9 @@ export default function AdminDashboardPage() {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Specialization</TableHead>
-                  <TableHead>Degree</TableHead>
-                   <TableHead>Fees</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Email</TableHead>
+                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -106,9 +117,17 @@ export default function AdminDashboardPage() {
                     <TableCell>
                       <Badge variant="secondary">{doctor.specialization}</Badge>
                     </TableCell>
-                    <TableCell>{doctor.degree}</TableCell>
-                     <TableCell>${doctor.fees}</TableCell>
+                    <TableCell>
+                       <Badge variant={doctor.isActive ?? true ? 'default' : 'destructive'} className={cn(doctor.isActive ?? true ? "bg-green-500" : "")}>
+                         {doctor.isActive ?? true ? 'Active' : 'Inactive'}
+                       </Badge>
+                    </TableCell>
                     <TableCell>{doctor.email}</TableCell>
+                     <TableCell>
+                        <Button variant="ghost" size="icon" onClick={() => openEditDoctorForm(doctor)}>
+                            <Pencil className="h-4 w-4" />
+                        </Button>
+                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

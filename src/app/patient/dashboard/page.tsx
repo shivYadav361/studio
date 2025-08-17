@@ -20,7 +20,8 @@ export default function PatientDashboard() {
   useEffect(() => {
     const fetchDoctors = async () => {
       setLoading(true);
-      const fetchedDoctors = await getDoctors();
+      // Only fetch active doctors for the patient view
+      const fetchedDoctors = await getDoctors({ activeOnly: true });
       setDoctors(fetchedDoctors);
       setLoading(false);
     };
