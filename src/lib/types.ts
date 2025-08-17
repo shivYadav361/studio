@@ -4,7 +4,7 @@ export interface User {
   uid: string;
   name: string;
   email: string;
-  role: 'patient' | 'doctor';
+  role: 'patient' | 'doctor' | 'admin';
   phone?: string;
   avatarUrl?: string;
 }
@@ -15,10 +15,16 @@ export interface Doctor extends User {
   availableDays: string[];
   availableTimes: { time: string, available: boolean }[];
   bio: string;
+  degree: string;
+  fees: number;
 }
 
 export interface Patient extends User {
   role: 'patient';
+}
+
+export interface Admin extends User {
+    role: 'admin';
 }
 
 export interface Appointment {

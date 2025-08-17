@@ -1,8 +1,9 @@
 
 'use client';
 
-import { db } from './firebase';
+import { db, auth } from './firebase';
 import { collection, getDocs, doc, getDoc, updateDoc, addDoc, query, where, setDoc } from 'firebase/firestore';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
 import type { Doctor, Patient, Appointment, User } from './types';
 import { Timestamp } from 'firebase/firestore';
 
@@ -16,10 +17,13 @@ export async function getUser(uid: string): Promise<User | null> {
     const doctorDoc = await getDoc(doc(db, 'doctors', uid));
     if (doctorDoc.exists()) return { uid: doctorDoc.id, ...doctorDoc.data() } as Doctor;
 
+    const adminDoc = await getDoc(doc(db, 'admins', uid));
+    if (adminDoc.exists()) return { uid: adminDoc.id, ...adminDoc.data() } as User;
+
     return null;
 }
 
-export async function getUserRole(uid: string): Promise<'patient' | 'doctor' | null> {
+export async function getUserRole(uid: string): Promise<'patient' | 'doctor' | 'admin' | null> {
     const user = await getUser(uid);
     return user?.role || null;
 }
@@ -47,11 +51,45 @@ export async function createUserInFirestore(uid: string, name: string, email: st
                 { time: '09:00 AM', available: true }, { time: '10:00 AM', available: true },
                 { time: '11:00 AM', available: true }, { time: '01:00 PM', available: true },
                 { time: '02:00 PM', available: true }, { time: '03:00 PM', available: true },
-            ]
+            ],
+            degree: 'MD',
+            fees: 100,
         } as Partial<Doctor>;
     }
 
     await setDoc(userDocRef, userData);
+}
+
+export async function saveDoctor(doctorData: Omit<Doctor, 'uid' | 'role' | 'avatarUrl'> & { uid?: string, password?: string }) {
+    let uid = doctorData.uid;
+
+    if (!uid && doctorData.password) {
+        // Create a new user in Firebase Auth
+        const userCredential = await createUserWithEmailAndPassword(auth, doctorData.email, doctorData.password);
+        uid = userCredential.user.uid;
+    } else if (!uid) {
+        throw new Error("Password is required to create a new doctor.");
+    }
+    
+    // Create or update the doctor document in Firestore
+    const doctorDocRef = doc(db, 'doctors', uid);
+    
+    // Explicitly define the data to be saved to ensure type safety
+    const dataToSave: Omit<Doctor, 'uid'> = {
+        name: doctorData.name,
+        email: doctorData.email,
+        role: 'doctor',
+        specialization: doctorData.specialization,
+        bio: doctorData.bio,
+        availableDays: doctorData.availableDays,
+        availableTimes: doctorData.availableTimes,
+        degree: doctorData.degree,
+        fees: doctorData.fees,
+        avatarUrl: `https://placehold.co/128x128.png`,
+    };
+
+    await setDoc(doctorDocRef, dataToSave, { merge: true });
+    return uid;
 }
 
 

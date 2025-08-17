@@ -26,6 +26,11 @@ async function getUserProfile(uid: string): Promise<User | null> {
     if (userDoc.exists()) {
         return { uid, ...userDoc.data(), role: 'doctor' } as User;
     }
+    // Check admins collection
+    userDoc = await getDoc(doc(db, 'admins', uid));
+    if (userDoc.exists()) {
+        return { uid, ...userDoc.data(), role: 'admin' } as User;
+    }
     return null;
 }
 

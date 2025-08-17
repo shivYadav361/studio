@@ -39,6 +39,8 @@ export default function LoginPage() {
             router.push('/patient/dashboard');
         } else if (role === 'doctor') {
             router.push('/doctor/dashboard');
+        } else if (role === 'admin') {
+            router.push('/admin/dashboard');
         } else {
             // Handle cases where user exists in Auth but not in Firestore collections
             toast({ title: 'Login Failed', description: 'User role not found. Please contact support.', variant: 'destructive' });
