@@ -38,16 +38,14 @@ export default function DoctorDashboardPage() {
     fetchAppointments();
   }, []);
 
-  const { upcomingAppointments, pastAppointments } = useMemo(() => {
-    const userAppointments = appointments
+  const { upcomingAppointments, completedAppointments } = useMemo(() => {
+    const sortedAppointments = appointments
       .sort((a, b) => new Date(a.appointmentDate).getTime() - new Date(b.appointmentDate).getTime());
     
-    const now = new Date();
-    now.setHours(0,0,0,0);
-    const upcoming = userAppointments.filter(a => new Date(a.appointmentDate) >= now);
-    const past = userAppointments.filter(a => new Date(a.appointmentDate) < now).reverse();
+    const upcoming = sortedAppointments.filter(a => a.status === 'booked');
+    const completed = sortedAppointments.filter(a => a.status === 'completed').reverse();
     
-    return { upcomingAppointments: upcoming, pastAppointments: past };
+    return { upcomingAppointments: upcoming, completedAppointments: completed };
   }, [appointments]);
 
   const renderAppointments = (apps: PopulatedAppointment[]) => {
@@ -80,13 +78,13 @@ export default function DoctorDashboardPage() {
       <Tabs defaultValue="upcoming" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
-          <TabsTrigger value="past">Completed</TabsTrigger>
+          <TabsTrigger value="completed">Completed</TabsTrigger>
         </TabsList>
         <TabsContent value="upcoming" className="mt-6">
           {loading ? renderSkeleton() : renderAppointments(upcomingAppointments)}
         </TabsContent>
-        <TabsContent value="past" className="mt-6">
-          {loading ? renderSkeleton() : renderAppointments(pastAppointments)}
+        <TabsContent value="completed" className="mt-6">
+          {loading ? renderSkeleton() : renderAppointments(completedAppointments)}
         </TabsContent>
       </Tabs>
     </div>
