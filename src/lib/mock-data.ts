@@ -113,7 +113,7 @@ export const mockAppointments: Appointment[] = [
     appointmentDate: new Date(new Date().setDate(new Date().getDate() - 10)),
     appointmentTime: '02:00 PM',
     symptoms: 'Fever and cough for my child.',
-    status: 'checked',
+    status: 'completed',
     doctorNotes: 'Prescribed amoxicillin. Follow up in one week if symptoms persist.',
   },
    {

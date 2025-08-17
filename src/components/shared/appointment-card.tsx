@@ -17,7 +17,7 @@ interface AppointmentCardProps {
 export function AppointmentCard({ appointment, perspective, user }: AppointmentCardProps) {
   const statusColors = {
     booked: 'bg-blue-100 text-blue-800 border-blue-300',
-    checked: 'bg-green-100 text-green-800 border-green-300',
+    completed: 'bg-green-100 text-green-800 border-green-300',
     cancelled: 'bg-red-100 text-red-800 border-red-300',
   };
 
@@ -58,7 +58,7 @@ export function AppointmentCard({ appointment, perspective, user }: AppointmentC
         <div className="col-span-2">
             <p className="text-muted-foreground"><strong>Symptoms:</strong> {appointment.symptoms}</p>
         </div>
-        {appointment.status === 'checked' && appointment.doctorNotes && (
+        {appointment.status === 'completed' && appointment.doctorNotes && (
              <div className="col-span-2 mt-2 p-3 bg-secondary/50 rounded-md">
                 <p className="font-semibold text-foreground">Doctor's Notes:</p>
                 <p className="text-muted-foreground text-sm">{appointment.doctorNotes}</p>

@@ -92,12 +92,9 @@ export async function getAppointment(id: string): Promise<{appointment: Appointm
     }
 }
 
-export async function updateAppointment(id: string, status: 'booked' | 'checked' | 'cancelled', doctorNotes: string): Promise<void> {
+export async function updateAppointment(id: string, data: Partial<Pick<Appointment, 'status' | 'doctorNotes'>>): Promise<void> {
     const appointmentRef = doc(db, 'appointments', id);
-    await updateDoc(appointmentRef, {
-        status,
-        doctorNotes
-    });
+    await updateDoc(appointmentRef, data);
 }
 
 export async function bookAppointment(doctorId: string, patientId: string, date: Date, time: string, symptoms: string): Promise<void> {

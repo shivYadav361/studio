@@ -28,6 +28,6 @@ export interface Appointment {
   appointmentDate: Date;
   appointmentTime: string;
   symptoms: string;
-  status: 'booked' | 'checked' | 'cancelled';
+  status: 'booked' | 'completed' | 'cancelled';
   doctorNotes?: string;
 }

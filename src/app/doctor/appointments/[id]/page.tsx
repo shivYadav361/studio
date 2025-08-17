@@ -3,43 +3,67 @@
 
 import { useEffect, useState } from 'react';
 import { notFound } from 'next/navigation';
-import { getAppointment, updateAppointment } from '@/lib/firestore-service';
+import { getAppointment, updateAppointment, getAppointmentsForPatient, getDoctor } from '@/lib/firestore-service';
 import { PageHeader } from '@/components/shared/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { FileText, User, Calendar, Clock, HeartPulse, CheckCircle, Loader2 } from 'lucide-react';
+import { FileText, User, Calendar, Clock, HeartPulse, CheckCircle, Loader2, History, Stethoscope } from 'lucide-react';
 import { format } from 'date-fns';
-import type { Appointment, Patient } from '@/lib/types';
+import type { Appointment, Patient, Doctor } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+
+
+interface PopulatedAppointment extends Appointment {
+    doctor: Doctor | null;
+}
 
 export default function AppointmentDetailsPage({ params }: { params: { id: string } }) {
   const { toast } = useToast();
   
   const [data, setData] = useState<{appointment: Appointment, patient: Patient | null} | null>(null);
+  const [patientHistory, setPatientHistory] = useState<PopulatedAppointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [completing, setCompleting] = useState(false);
 
   // Form state
-  const [status, setStatus] = useState<'booked' | 'checked' | 'cancelled'>('booked');
   const [doctorNotes, setDoctorNotes] = useState('');
 
   useEffect(() => {
-    const fetchAppointment = async () => {
+    const fetchAppointmentData = async () => {
         setLoading(true);
         const result = await getAppointment(params.id);
+        
         if(result) {
             setData(result);
-            setStatus(result.appointment.status);
             setDoctorNotes(result.appointment.doctorNotes || '');
+
+            // Fetch patient history
+            const history = await getAppointmentsForPatient(result.appointment.patientId);
+            const populatedHistory = await Promise.all(
+                history.map(async (app) => {
+                    const doctor = await getDoctor(app.doctorId);
+                    return { ...app, doctor };
+                })
+            );
+
+            // Filter out the current appointment and sort by date
+            const sortedHistory = populatedHistory
+                .filter(a => a.id !== params.id)
+                .sort((a, b) => b.appointmentDate.getTime() - a.appointmentDate.getTime());
+            
+            setPatientHistory(sortedHistory);
         }
         setLoading(false);
     }
-    fetchAppointment();
+    fetchAppointmentData();
   }, [params.id]);
 
 
@@ -53,19 +77,19 @@ export default function AppointmentDetailsPage({ params }: { params: { id: strin
 
   const { appointment, patient } = data;
   
-  const handleUpdate = async () => {
+  const handleUpdateNotes = async () => {
     setUpdating(true);
     try {
-        await updateAppointment(appointment.id, status, doctorNotes);
+        await updateAppointment(appointment.id, { doctorNotes });
         toast({
-            title: "Appointment Updated",
-            description: "The appointment details have been saved successfully.",
+            title: "Notes Updated",
+            description: "The appointment notes have been saved successfully.",
             action: <div className="p-2 rounded-full bg-green-500"><CheckCircle className="text-white" /></div>
         });
     } catch (error) {
         toast({
             title: 'Update Failed',
-            description: 'Could not update the appointment. Please try again.',
+            description: 'Could not update the notes. Please try again.',
             variant: 'destructive',
         });
     } finally {
@@ -73,53 +97,69 @@ export default function AppointmentDetailsPage({ params }: { params: { id: strin
     }
   }
 
+  const handleCompleteAppointment = async () => {
+      setCompleting(true);
+      try {
+        await updateAppointment(appointment.id, { status: 'completed', doctorNotes });
+        toast({
+            title: "Appointment Completed",
+            description: "This appointment has been marked as completed.",
+        });
+        // Refetch data to update UI
+        const result = await getAppointment(params.id);
+        if(result) setData(result);
+      } catch (error) {
+        toast({
+            title: 'Action Failed',
+            description: 'Could not mark the appointment as completed.',
+            variant: 'destructive',
+        });
+      } finally {
+        setCompleting(false);
+      }
+  }
+  
+  const isCompleted = appointment.status === 'completed';
+
   return (
-    <div className="container mx-auto max-w-4xl">
+    <div className="container mx-auto max-w-5xl">
       <PageHeader
         title="Appointment Details"
         description={`Manage appointment for ${patient.name}.`}
         icon={FileText}
       />
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className="md:col-span-2">
+        <div className="md:col-span-2 space-y-8">
             <Card>
                 <CardHeader>
                     <CardTitle>Update Appointment</CardTitle>
+                    {isCompleted && <CardDescription className='text-green-600 font-semibold'>This appointment has been completed.</CardDescription>}
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <div>
-                        <Label className="font-semibold">Appointment Status</Label>
-                        <RadioGroup value={status} onValueChange={(val) => setStatus(val as any)} className="flex gap-4 pt-2">
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="booked" id="status-booked" />
-                                <Label htmlFor="status-booked">Booked</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="checked" id="status-checked" />
-                                <Label htmlFor="status-checked">Checked</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="cancelled" id="status-cancelled" />
-                                <Label htmlFor="status-cancelled">Cancelled</Label>
-                            </div>
-                        </RadioGroup>
-                    </div>
                      <div>
-                        <Label htmlFor="doctor-notes" className="font-semibold">Doctor's Notes</Label>
+                        <Label htmlFor="doctor-notes" className="font-semibold">Doctor's Notes / Prescription</Label>
                         <Textarea 
                             id="doctor-notes" 
                             value={doctorNotes}
                             onChange={(e) => setDoctorNotes(e.target.value)}
-                            placeholder="Add notes about the consultation..."
+                            placeholder="Add notes about the consultation, diagnosis, and prescription..."
                             rows={6}
+                            disabled={isCompleted}
                         />
                      </div>
-                     <Button onClick={handleUpdate} disabled={updating}>
-                        {updating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        {updating ? "Saving..." : "Save Changes"}
-                     </Button>
+                     <div className="flex gap-4">
+                        <Button onClick={handleUpdateNotes} disabled={updating || isCompleted}>
+                            {updating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {updating ? "Saving..." : "Save Notes"}
+                        </Button>
+                         <Button onClick={handleCompleteAppointment} disabled={completing || isCompleted} variant="secondary">
+                            {completing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Mark as Completed
+                         </Button>
+                     </div>
                 </CardContent>
             </Card>
+            <PatientHistory history={patientHistory} />
         </div>
         <div>
             <Card className="sticky top-24">
@@ -152,6 +192,50 @@ export default function AppointmentDetailsPage({ params }: { params: { id: strin
   );
 }
 
+function PatientHistory({ history }: { history: PopulatedAppointment[] }) {
+    if (history.length === 0) return null;
+
+    const statusColors = {
+        booked: 'bg-blue-100 text-blue-800 border-blue-300',
+        completed: 'bg-green-100 text-green-800 border-green-300',
+        cancelled: 'bg-red-100 text-red-800 border-red-300',
+    };
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><History className="h-6 w-6" /> Patient's Past Visits</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <Accordion type="single" collapsible className="w-full">
+                    {history.map(app => (
+                        <AccordionItem value={app.id} key={app.id}>
+                            <AccordionTrigger>
+                                <div className='flex items-center justify-between w-full pr-4'>
+                                    <div>
+                                        <p className="font-semibold">{format(app.appointmentDate, 'PPP')} - {app.appointmentTime}</p>
+                                        <p className="text-sm text-muted-foreground flex items-center gap-2">
+                                            <Stethoscope className='h-4 w-4' />
+                                            {app.doctor?.name}
+                                        </p>
+                                    </div>
+                                    <Badge variant="outline" className={cn("capitalize", statusColors[app.status])}>
+                                        {app.status}
+                                    </Badge>
+                                </div>
+                            </AccordionTrigger>
+                            <AccordionContent className="space-y-2">
+                                <p><strong>Symptoms:</strong> {app.symptoms}</p>
+                                {app.doctorNotes && <p><strong>Doctor's Notes:</strong> {app.doctorNotes}</p>}
+                            </AccordionContent>
+                        </AccordionItem>
+                    ))}
+                </Accordion>
+            </CardContent>
+        </Card>
+    );
+}
+
 function AppointmentDetailSkeleton() {
     return (
         <div className="container mx-auto max-w-4xl">
@@ -165,6 +249,7 @@ function AppointmentDetailSkeleton() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div className="md:col-span-2 space-y-4">
                     <Skeleton className="h-64 w-full" />
+                    <Skeleton className="h-48 w-full" />
                 </div>
                 <div>
                     <Skeleton className="h-80 w-full" />
@@ -173,4 +258,3 @@ function AppointmentDetailSkeleton() {
         </div>
     );
 }
-
