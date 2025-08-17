@@ -29,22 +29,18 @@ export default function PatientDashboard() {
   }, []);
 
   const specializations = useMemo(() => {
-    if (loading) return ['all'];
     const uniqueSpecializations = new Set(doctors.map(d => d.specialization));
     return ['all', ...Array.from(uniqueSpecializations)];
-  }, [doctors, loading]);
+  }, [doctors]);
 
   const filteredDoctors = useMemo(() => {
-    if (loading) {
-      return [];
-    }
     return doctors.filter((doctor) => {
       const matchesSearch = doctor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                             doctor.specialization.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesSpecialization = specialization === 'all' || doctor.specialization === specialization;
       return matchesSearch && matchesSpecialization;
     });
-  }, [searchTerm, specialization, doctors, loading]);
+  }, [searchTerm, specialization, doctors]);
 
   const renderSkeleton = () => (
     <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
