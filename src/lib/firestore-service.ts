@@ -2,13 +2,51 @@
 'use client';
 
 import { db } from './firebase';
-import { collection, getDocs, doc, getDoc, updateDoc, addDoc, query, where } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, updateDoc, addDoc, query, where, setDoc } from 'firebase/firestore';
 import type { Doctor, Patient, Appointment } from './types';
 import { Timestamp } from 'firebase/firestore';
 
 
 // NOTE: In a real app, you'd have auth and rules to secure this data.
 // For now, we're fetching all data.
+
+export async function getUserRole(uid: string): Promise<'patient' | 'doctor' | null> {
+    const patientDoc = await getDoc(doc(db, 'patients', uid));
+    if (patientDoc.exists()) return 'patient';
+
+    const doctorDoc = await getDoc(doc(db, 'doctors', uid));
+    if (doctorDoc.exists()) return 'doctor';
+
+    return null;
+}
+
+
+export async function createUserInFirestore(uid: string, name: string, email: string, role: 'patient' | 'doctor') {
+    const collectionName = role === 'patient' ? 'patients' : 'doctors';
+    const userDocRef = doc(db, collectionName, uid);
+
+    const userData: Partial<Patient | Doctor> = {
+        uid,
+        name,
+        email,
+        role,
+        avatarUrl: `https://placehold.co/100x100.png`,
+    };
+
+    if (role === 'doctor') {
+        (userData as Doctor).specialization = 'General Medicine'; // Default value
+        (userData as Doctor).bio = 'Newly registered doctor.'; // Default value
+        (userData as Doctor).availableDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']; // Default
+        (userData as Doctor).availableTimes = [
+            { time: '09:00 AM', available: true }, { time: '10:00 AM', available: true },
+            { time: '11:00 AM', available: true }, { time: '01:00 PM', available: true },
+            { time: '02:00 PM', available: true }, { time: '03:00 PM', available: true },
+        ]
+    }
+
+    await setDoc(userDocRef, userData);
+}
+
 
 export async function getDoctors(): Promise<Doctor[]> {
     const doctorsCol = collection(db, 'doctors');
