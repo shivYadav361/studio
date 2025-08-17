@@ -29,18 +29,20 @@ export default function PatientDashboard() {
   }, []);
 
   const specializations = useMemo(() => {
+    if (loading) return [];
     const uniqueSpecializations = new Set(doctors.map(d => d.specialization));
     return ['all', ...Array.from(uniqueSpecializations)];
-  }, [doctors]);
+  }, [doctors, loading]);
 
   const filteredDoctors = useMemo(() => {
+    if (loading) return [];
     return doctors.filter((doctor) => {
       const matchesSearch = doctor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                             doctor.specialization.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesSpecialization = specialization === 'all' || doctor.specialization === specialization;
       return matchesSearch && matchesSpecialization;
     });
-  }, [searchTerm, specialization, doctors]);
+  }, [searchTerm, specialization, doctors, loading]);
 
   const renderSkeleton = () => (
     <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -84,7 +86,7 @@ export default function PatientDashboard() {
                 disabled={loading}
             />
         </div>
-        <Select value={specialization} onValueChange={setSpecialization} disabled={loading}>
+        <Select value={specialization} onValueChange={setSpecialization} disabled={loading || specializations.length <= 1}>
           <SelectTrigger>
             <SelectValue placeholder="Filter by specialization" />
           </SelectTrigger>
