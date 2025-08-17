@@ -7,9 +7,11 @@ import { AppointmentCard } from '@/components/shared/appointment-card';
 import { getAppointmentsForDoctor, getPatient } from '@/lib/firestore-service';
 import { LayoutDashboard } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import type { Appointment, Patient } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/use-auth.tsx';
+import { isToday, isTomorrow, parseISO, startOfDay } from 'date-fns';
 
 interface PopulatedAppointment extends Appointment {
     patient: Patient | null;
@@ -38,22 +40,31 @@ export default function DoctorDashboardPage() {
     fetchAppointments();
   }, [user]);
 
-  const { upcomingAppointments, completedAppointments } = useMemo(() => {
+  const { todayAppointments, tomorrowAppointments, futureAppointments, completedAppointments } = useMemo(() => {
     const sortedAppointments = appointments
       .sort((a, b) => new Date(a.appointmentDate).getTime() - new Date(b.appointmentDate).getTime());
     
     const upcoming = sortedAppointments.filter(a => a.status === 'booked');
     const completed = sortedAppointments.filter(a => a.status === 'completed').reverse();
+
+    const today = upcoming.filter(a => isToday(a.appointmentDate));
+    const tomorrow = upcoming.filter(a => isTomorrow(a.appointmentDate));
+    const future = upcoming.filter(a => !isToday(a.appointmentDate) && !isTomorrow(a.appointmentDate));
     
-    return { upcomingAppointments: upcoming, completedAppointments: completed };
+    return { 
+        todayAppointments: today, 
+        tomorrowAppointments: tomorrow,
+        futureAppointments: future,
+        completedAppointments: completed 
+    };
   }, [appointments]);
 
-  const renderAppointments = (apps: PopulatedAppointment[]) => {
+  const renderAppointmentsList = (apps: PopulatedAppointment[], emptyMessage: string) => {
     if (apps.length === 0) {
-      return <p className="text-center text-muted-foreground py-10">No appointments in this category.</p>;
+      return <p className="text-center text-muted-foreground py-6">{emptyMessage}</p>;
     }
     return (
-      <div className="space-y-4">
+      <div className="space-y-4 py-4">
         {apps.map(app => {
           if (!app.patient) return null;
           return <AppointmentCard key={app.id} appointment={app} user={app.patient} perspective="doctor" />;
@@ -81,10 +92,31 @@ export default function DoctorDashboardPage() {
           <TabsTrigger value="completed">Completed</TabsTrigger>
         </TabsList>
         <TabsContent value="upcoming" className="mt-6">
-          {loading ? renderSkeleton() : renderAppointments(upcomingAppointments)}
+          {loading ? renderSkeleton() : (
+            <Accordion type="single" defaultValue="today" collapsible>
+                <AccordionItem value="today">
+                    <AccordionTrigger className="text-lg font-semibold">Today ({todayAppointments.length})</AccordionTrigger>
+                    <AccordionContent>
+                        {renderAppointmentsList(todayAppointments, "No appointments scheduled for today.")}
+                    </AccordionContent>
+                </AccordionItem>
+                <AccordionItem value="tomorrow">
+                    <AccordionTrigger className="text-lg font-semibold">Tomorrow ({tomorrowAppointments.length})</AccordionTrigger>
+                    <AccordionContent>
+                        {renderAppointmentsList(tomorrowAppointments, "No appointments scheduled for tomorrow.")}
+                    </AccordionContent>
+                </AccordionItem>
+                 <AccordionItem value="future">
+                    <AccordionTrigger className="text-lg font-semibold">Future ({futureAppointments.length})</AccordionTrigger>
+                    <AccordionContent>
+                        {renderAppointmentsList(futureAppointments, "No other upcoming appointments.")}
+                    </AccordionContent>
+                </AccordionItem>
+            </Accordion>
+          )}
         </TabsContent>
         <TabsContent value="completed" className="mt-6">
-          {loading ? renderSkeleton() : renderAppointments(completedAppointments)}
+          {loading ? renderSkeleton() : renderAppointmentsList(completedAppointments, "No completed appointments yet.")}
         </TabsContent>
       </Tabs>
     </div>
