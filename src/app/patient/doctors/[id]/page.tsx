@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils';
 import type { DateRange } from "react-day-picker";
 import type { Doctor } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth } from '@/hooks/use-auth.tsx';
 
 export default function DoctorDetailPage({ params }: { params: { id: string } }) {
   const { toast } = useToast();

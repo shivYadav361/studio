@@ -2,7 +2,7 @@
 'use client';
 
 import { AppLayout, type NavItem } from '@/components/shared/app-layout';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth } from '@/hooks/use-auth.tsx';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const navItems: NavItem[] = [
