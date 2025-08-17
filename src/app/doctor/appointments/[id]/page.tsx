@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { notFound } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 import { getAppointment, updateAppointment, getAppointmentsForPatient, getDoctor } from '@/lib/firestore-service';
 import { PageHeader } from '@/components/shared/page-header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -24,7 +24,9 @@ interface PopulatedAppointment extends Appointment {
     doctor: Doctor | null;
 }
 
-export default function AppointmentDetailsPage({ params }: { params: { id: string } }) {
+export default function AppointmentDetailsPage() {
+  const params = useParams();
+  const id = params.id as string;
   const { toast } = useToast();
   
   const [data, setData] = useState<{appointment: Appointment, patient: Patient | null} | null>(null);
@@ -37,9 +39,10 @@ export default function AppointmentDetailsPage({ params }: { params: { id: strin
   const [doctorNotes, setDoctorNotes] = useState('');
 
   useEffect(() => {
+    if (!id) return;
     const fetchAppointmentData = async () => {
         setLoading(true);
-        const result = await getAppointment(params.id);
+        const result = await getAppointment(id);
         
         if(result) {
             setData(result);
@@ -56,7 +59,7 @@ export default function AppointmentDetailsPage({ params }: { params: { id: strin
 
             // Filter to show only *completed* past appointments, sorted by date
             const sortedHistory = populatedHistory
-                .filter(a => a.id !== params.id && a.status === 'completed')
+                .filter(a => a.id !== id && a.status === 'completed')
                 .sort((a, b) => b.appointmentDate.getTime() - a.appointmentDate.getTime());
             
             setPatientHistory(sortedHistory);
@@ -64,7 +67,7 @@ export default function AppointmentDetailsPage({ params }: { params: { id: strin
         setLoading(false);
     }
     fetchAppointmentData();
-  }, [params.id]);
+  }, [id]);
 
 
   if (loading) {
@@ -72,7 +75,14 @@ export default function AppointmentDetailsPage({ params }: { params: { id: strin
   }
 
   if (!data || !data.appointment || !data.patient) {
-    notFound();
+    // Using notFound() in a client component isn't ideal for static export.
+    // We'll show a message instead. In a real app, you might redirect.
+    return (
+        <div className="container mx-auto">
+            <PageHeader title="Not Found" description="Appointment details could not be loaded." icon={FileText} />
+             <p>The appointment you are looking for does not exist or you do not have permission to view it.</p>
+        </div>
+    );
   }
 
   const { appointment, patient } = data;
@@ -106,7 +116,7 @@ export default function AppointmentDetailsPage({ params }: { params: { id: strin
             description: "This appointment has been marked as completed.",
         });
         // Refetch data to update UI
-        const result = await getAppointment(params.id);
+        const result = await getAppointment(id);
         if(result) setData(result);
       } catch (error) {
         toast({
