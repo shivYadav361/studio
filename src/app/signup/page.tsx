@@ -30,6 +30,11 @@ export default function SignupPage() {
         toast({ title: 'Error', description: 'Please fill out all fields.', variant: 'destructive' });
         return;
     }
+    // Basic check for E.164 format
+    if (!/^\+[1-9]\d{1,14}$/.test(phone)) {
+        toast({ title: 'Invalid Phone Number', description: 'Please enter the phone number in E.164 format (e.g., +11234567890).', variant: 'destructive' });
+        return;
+    }
     setLoading(true);
 
     try {
@@ -78,7 +83,7 @@ export default function SignupPage() {
               <Input id="email" type="email" placeholder="name@example.com" required value={email} onChange={e => setEmail(e.target.value)} disabled={loading} />
             </div>
              <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
+              <Label htmlFor="phone">Phone Number (e.g., +11234567890)</Label>
               <Input id="phone" type="tel" placeholder="+11234567890" required value={phone} onChange={e => setPhone(e.target.value)} disabled={loading} />
             </div>
             <div className="space-y-2">
