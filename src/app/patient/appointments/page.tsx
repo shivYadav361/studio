@@ -45,10 +45,8 @@ export default function MyAppointmentsPage() {
     const sortedAppointments = appointments
       .sort((a, b) => new Date(b.appointmentDate).getTime() - new Date(a.appointmentDate).getTime());
     
-    const now = new Date();
-    now.setHours(0,0,0,0);
-    const upcoming = sortedAppointments.filter(a => new Date(a.appointmentDate) >= now);
-    const past = sortedAppointments.filter(a => new Date(a.appointmentDate) < now);
+    const upcoming = sortedAppointments.filter(a => a.status === 'booked');
+    const past = sortedAppointments.filter(a => a.status === 'completed' || a.status === 'cancelled');
     
     return { upcomingAppointments: upcoming, pastAppointments: past };
   }, [appointments]);
