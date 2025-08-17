@@ -4,27 +4,30 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, Stethoscope, User, ArrowRight } from 'lucide-react';
+import { Calendar, Clock, Stethoscope, User, ArrowRight, XCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import React from 'react';
 
 interface AppointmentCardProps {
   appointment: Appointment;
   perspective: 'patient' | 'doctor';
   user: Patient | Doctor;
+  onCancel?: (appointmentId: string) => void;
 }
 
-export function AppointmentCard({ appointment, perspective, user }: AppointmentCardProps) {
+export function AppointmentCard({ appointment, perspective, user, onCancel }: AppointmentCardProps) {
   const statusColors = {
     booked: 'bg-blue-100 text-blue-800 border-blue-300',
     completed: 'bg-green-100 text-green-800 border-green-300',
     cancelled: 'bg-red-100 text-red-800 border-red-300',
   };
 
-  const isPast = new Date(appointment.appointmentDate) < new Date();
+  const isPast = new Date(appointment.appointmentDate) < new Date() && appointment.status !== 'booked';
+  const canCancel = perspective === 'patient' && appointment.status === 'booked' && new Date(appointment.appointmentDate) >= new Date();
 
   return (
-    <Card className={cn("overflow-hidden transition-shadow hover:shadow-md", isPast && 'bg-muted/50')}>
+    <Card className={cn("overflow-hidden transition-shadow hover:shadow-md", (isPast || appointment.status === 'cancelled') && 'bg-muted/50')}>
       <CardHeader className="flex flex-row items-center gap-4 p-4 border-b">
         <Avatar className="h-12 w-12 border">
           <AvatarImage src={user.avatarUrl} alt={user.name} />
@@ -65,15 +68,21 @@ export function AppointmentCard({ appointment, perspective, user }: AppointmentC
             </div>
         )}
       </CardContent>
-      {perspective === 'doctor' && (
-        <CardFooter className="p-4 border-t">
-          <Button asChild variant="outline" size="sm" className="ml-auto">
-            <Link href={`/doctor/appointments/${appointment.id}`}>
-              View Details <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
-          </Button>
-        </CardFooter>
-      )}
+      <CardFooter className="p-4 border-t flex justify-end">
+          {perspective === 'doctor' && appointment.status !== 'completed' && (
+            <Button asChild variant="outline" size="sm">
+                <Link href={`/doctor/appointments/${appointment.id}`}>
+                View Details <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+            </Button>
+          )}
+          {canCancel && onCancel && (
+            <Button onClick={() => onCancel(appointment.id)} variant="destructive" size="sm">
+                <XCircle className="mr-2 h-4 w-4" />
+                Cancel Appointment
+            </Button>
+          )}
+      </CardFooter>
     </Card>
   );
 }

@@ -142,6 +142,12 @@ export async function updateAppointment(id: string, data: Partial<Pick<Appointme
     await updateDoc(appointmentRef, data);
 }
 
+export async function cancelAppointment(id: string): Promise<void> {
+    const appointmentRef = doc(db, 'appointments', id);
+    await updateDoc(appointmentRef, { status: 'cancelled' });
+}
+
+
 export async function bookAppointment(doctorId: string, patientId: string, date: Date, time: string, symptoms: string): Promise<void> {
     await addDoc(collection(db, 'appointments'), {
         doctorId,
