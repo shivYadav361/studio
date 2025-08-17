@@ -82,7 +82,7 @@ export function DoctorForm({ isOpen, onOpenChange, doctor, onSuccess }: DoctorFo
         name: '', email: '', password: '', specialization: '', degree: '', fees: 100, bio: '', availableDays: [], availableTimes: [], isActive: true
       });
     }
-  }, [doctor, reset]);
+  }, [doctor, reset, isOpen]);
 
   const onSubmit = async (data: DoctorFormValues) => {
     setLoading(true);

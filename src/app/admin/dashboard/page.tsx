@@ -108,7 +108,7 @@ export default function AdminDashboardPage() {
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar>
-                          <AvatarImage src={doctor.avatarUrl} />
+                          <AvatarImage src={doctor.avatarUrl} alt={doctor.name} />
                           <AvatarFallback>{doctor.name.charAt(0)}</AvatarFallback>
                         </Avatar>
                         <span className="font-medium">{doctor.name}</span>
