@@ -16,14 +16,12 @@ import { cn } from '@/lib/utils';
 import type { DateRange } from "react-day-picker";
 import type { Doctor } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-
-
-// Hardcoded patient ID for demonstration. In a real app, this would come from auth.
-const FAKE_PATIENT_ID = 'patient1';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function DoctorDetailPage({ params }: { params: { id: string } }) {
   const { toast } = useToast();
   const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
 
   const [doctor, setDoctor] = useState<Doctor | null>(null);
   const [loading, setLoading] = useState(true);
@@ -46,7 +44,7 @@ export default function DoctorDetailPage({ params }: { params: { id: string } })
   }, [params.id]);
 
 
-  if (loading) {
+  if (loading || authLoading) {
     return <DoctorDetailSkeleton />;
   }
 
@@ -55,6 +53,15 @@ export default function DoctorDetailPage({ params }: { params: { id: string } })
   }
 
   const handleBooking = async () => {
+    if (!user) {
+        toast({
+            title: 'Not Logged In',
+            description: 'You must be logged in to book an appointment.',
+            variant: 'destructive',
+        });
+        router.push('/login');
+        return;
+    }
     if (!date || !selectedTime || !symptoms) {
       toast({
         title: 'Incomplete Information',
@@ -65,13 +72,12 @@ export default function DoctorDetailPage({ params }: { params: { id: string } })
     }
     setBooking(true);
     try {
-        await bookAppointment(doctor.uid, FAKE_PATIENT_ID, date, selectedTime, symptoms);
+        await bookAppointment(doctor.uid, user.uid, date, selectedTime, symptoms);
         toast({
             title: 'Appointment Booked!',
             description: `Your appointment with ${doctor.name} is confirmed for ${date.toLocaleDateString()} at ${selectedTime}.`,
             action: <div className="p-2 rounded-full bg-green-500"><CheckCircle className="text-white" /></div>
         });
-        // Reset form and potentially redirect
         setSelectedTime(null);
         setSymptoms('');
         router.push('/patient/appointments');

@@ -9,22 +9,22 @@ import { LayoutDashboard } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Appointment, Patient } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-
-// Hardcoded doctor ID for demonstration. In a real app, this would come from auth.
-const FAKE_DOCTOR_ID = 'doctor1';
+import { useAuth } from '@/hooks/use-auth';
 
 interface PopulatedAppointment extends Appointment {
     patient: Patient | null;
 }
 
 export default function DoctorDashboardPage() {
+  const { user } = useAuth();
   const [appointments, setAppointments] = useState<PopulatedAppointment[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchAppointments = async () => {
+        if (!user) return;
         setLoading(true);
-        const doctorAppointments = await getAppointmentsForDoctor(FAKE_DOCTOR_ID);
+        const doctorAppointments = await getAppointmentsForDoctor(user.uid);
 
         const populatedAppointments = await Promise.all(
             doctorAppointments.map(async (app) => {
@@ -36,7 +36,7 @@ export default function DoctorDashboardPage() {
         setLoading(false);
     }
     fetchAppointments();
-  }, []);
+  }, [user]);
 
   const { upcomingAppointments, completedAppointments } = useMemo(() => {
     const sortedAppointments = appointments

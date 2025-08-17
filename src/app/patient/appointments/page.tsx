@@ -9,24 +9,23 @@ import { CalendarCheck } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Appointment, Doctor } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-
-// Hardcoded patient ID for demonstration. In a real app, this would come from auth.
-const FAKE_PATIENT_ID = 'patient1';
+import { useAuth } from '@/hooks/use-auth';
 
 interface PopulatedAppointment extends Appointment {
     doctor: Doctor | null;
 }
 
 export default function MyAppointmentsPage() {
+  const { user } = useAuth();
   const [appointments, setAppointments] = useState<PopulatedAppointment[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchAppointments = async () => {
+        if (!user) return;
         setLoading(true);
-        const userAppointments = await getAppointmentsForPatient(FAKE_PATIENT_ID);
+        const userAppointments = await getAppointmentsForPatient(user.uid);
         
-        // Fetch doctor details for each appointment
         const populatedAppointments = await Promise.all(
             userAppointments.map(async (app) => {
                 const doctor = await getDoctor(app.doctorId);
@@ -38,17 +37,18 @@ export default function MyAppointmentsPage() {
         setLoading(false);
     }
     fetchAppointments();
-  }, [])
+  }, [user]);
 
 
   const { upcomingAppointments, pastAppointments } = useMemo(() => {
+    const now = new Date();
     const sortedAppointments = appointments
-      .sort((a, b) => new Date(b.appointmentDate).getTime() - new Date(a.appointmentDate).getTime());
+      .sort((a, b) => new Date(a.appointmentDate).getTime() - new Date(b.appointmentDate).getTime());
     
-    const upcoming = sortedAppointments.filter(a => a.status === 'booked');
-    const past = sortedAppointments.filter(a => a.status === 'completed' || a.status === 'cancelled');
+    const upcoming = sortedAppointments.filter(a => a.status === 'booked' && a.appointmentDate >= now);
+    const past = sortedAppointments.filter(a => a.status === 'completed' || a.status === 'cancelled' || a.appointmentDate < now);
     
-    return { upcomingAppointments: upcoming, pastAppointments: past };
+    return { upcomingAppointments: upcoming.reverse(), pastAppointments: past.reverse() };
   }, [appointments]);
 
   const renderAppointments = (apps: PopulatedAppointment[]) => {

@@ -3,21 +3,25 @@
 
 import { db } from './firebase';
 import { collection, getDocs, doc, getDoc, updateDoc, addDoc, query, where, setDoc } from 'firebase/firestore';
-import type { Doctor, Patient, Appointment } from './types';
+import type { Doctor, Patient, Appointment, User } from './types';
 import { Timestamp } from 'firebase/firestore';
 
 
 // NOTE: In a real app, you'd have auth and rules to secure this data.
-// For now, we're fetching all data.
 
-export async function getUserRole(uid: string): Promise<'patient' | 'doctor' | null> {
+export async function getUser(uid: string): Promise<User | null> {
     const patientDoc = await getDoc(doc(db, 'patients', uid));
-    if (patientDoc.exists()) return 'patient';
+    if (patientDoc.exists()) return { uid: patientDoc.id, ...patientDoc.data() } as Patient;
 
     const doctorDoc = await getDoc(doc(db, 'doctors', uid));
-    if (doctorDoc.exists()) return 'doctor';
+    if (doctorDoc.exists()) return { uid: doctorDoc.id, ...doctorDoc.data() } as Doctor;
 
     return null;
+}
+
+export async function getUserRole(uid: string): Promise<'patient' | 'doctor' | null> {
+    const user = await getUser(uid);
+    return user?.role || null;
 }
 
 
@@ -25,7 +29,7 @@ export async function createUserInFirestore(uid: string, name: string, email: st
     const collectionName = role === 'patient' ? 'patients' : 'doctors';
     const userDocRef = doc(db, collectionName, uid);
 
-    const userData: Partial<Patient | Doctor> = {
+    let userData: Partial<Patient | Doctor> = {
         uid,
         name,
         email,
@@ -34,14 +38,17 @@ export async function createUserInFirestore(uid: string, name: string, email: st
     };
 
     if (role === 'doctor') {
-        (userData as Doctor).specialization = 'General Medicine'; // Default value
-        (userData as Doctor).bio = 'Newly registered doctor.'; // Default value
-        (userData as Doctor).availableDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']; // Default
-        (userData as Doctor).availableTimes = [
-            { time: '09:00 AM', available: true }, { time: '10:00 AM', available: true },
-            { time: '11:00 AM', available: true }, { time: '01:00 PM', available: true },
-            { time: '02:00 PM', available: true }, { time: '03:00 PM', available: true },
-        ]
+        userData = {
+            ...userData,
+            specialization: 'General Medicine', // Default value
+            bio: 'Newly registered doctor.', // Default value
+            availableDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'], // Default
+            availableTimes: [
+                { time: '09:00 AM', available: true }, { time: '10:00 AM', available: true },
+                { time: '11:00 AM', available: true }, { time: '01:00 PM', available: true },
+                { time: '02:00 PM', available: true }, { time: '03:00 PM', available: true },
+            ]
+        } as Partial<Doctor>;
     }
 
     await setDoc(userDocRef, userData);
