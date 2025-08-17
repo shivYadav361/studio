@@ -22,10 +22,11 @@ export default function SignupPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSignup = async () => {
-    if (!name || !email || !password) {
+    if (!name || !email || !password || !phone) {
         toast({ title: 'Error', description: 'Please fill out all fields.', variant: 'destructive' });
         return;
     }
@@ -36,7 +37,7 @@ export default function SignupPage() {
         const user = userCredential.user;
 
         // All signups from this page are for patients
-        await createUserInFirestore(user.uid, name, email, 'patient');
+        await createUserInFirestore(user.uid, name, email, 'patient', phone);
 
         toast({
             title: 'Account Created!',
@@ -75,6 +76,10 @@ export default function SignupPage() {
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input id="email" type="email" placeholder="name@example.com" required value={email} onChange={e => setEmail(e.target.value)} disabled={loading} />
+            </div>
+             <div className="space-y-2">
+              <Label htmlFor="phone">Phone Number</Label>
+              <Input id="phone" type="tel" placeholder="+11234567890" required value={phone} onChange={e => setPhone(e.target.value)} disabled={loading} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>

@@ -1,7 +1,7 @@
 
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
+import { getAuth, RecaptchaVerifier } from "firebase/auth";
 
 const firebaseConfig = {
   "projectId": "medipoint-akoz6",
@@ -13,10 +13,20 @@ const firebaseConfig = {
   "messagingSenderId": "47680034904"
 };
   
-
-// Initialize Firebase
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-export { db, auth };
+const generateRecaptcha = () => {
+    if (typeof window !== 'undefined' && document.getElementById('recaptcha-container')) {
+        return new RecaptchaVerifier(auth, 'recaptcha-container', {
+            'size': 'invisible',
+            'callback': (response: any) => {
+              // reCAPTCHA solved, allow signInWithPhoneNumber.
+            }
+        });
+    }
+    return null;
+};
+
+export { db, auth, generateRecaptcha };

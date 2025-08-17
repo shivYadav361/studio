@@ -27,7 +27,7 @@ export async function getUserRole(uid: string): Promise<'patient' | 'doctor' | '
 }
 
 
-export async function createUserInFirestore(uid: string, name: string, email: string, role: 'patient') {
+export async function createUserInFirestore(uid: string, name: string, email: string, role: 'patient', phone: string) {
     const collectionName = 'patients';
     const userDocRef = doc(db, collectionName, uid);
 
@@ -36,6 +36,7 @@ export async function createUserInFirestore(uid: string, name: string, email: st
         name,
         email,
         role,
+        phone,
         avatarUrl: `https://placehold.co/100x100.png`,
     };
 
@@ -48,12 +49,9 @@ export async function createDoctor(doctorData: Omit<Doctor, 'uid' | 'role' | 'av
         throw new Error("Password is required to create a new doctor.");
     }
 
-    // This is a temporary auth instance to create the user without signing in the admin as that user
-    // This is a known workaround for a limitation in the Firebase Web SDK.
     const { initializeApp, deleteApp } = await import('firebase/app');
     const { getAuth: getAdminAuth, createUserWithEmailAndPassword: createAdminUser } = await import("firebase/auth");
     
-    // Create a temporary, uniquely named app instance to avoid conflicts
     const tempAppName = `temp-auth-app-${Date.now()}`;
     const tempApp = initializeApp(auth.app.options, tempAppName);
     const tempAuth = getAdminAuth(tempApp);
@@ -86,7 +84,6 @@ export async function createDoctor(doctorData: Omit<Doctor, 'uid' | 'role' | 'av
         }
         throw e;
     } finally {
-        // Clean up the temporary app instance after successful creation or on error
         await deleteApp(tempApp);
     }
     
@@ -99,7 +96,6 @@ export async function saveDoctor(doctorData: Omit<Doctor, 'role' | 'avatarUrl'> 
     const { uid, ...data } = doctorData;
     const doctorDocRef = doc(db, 'doctors', uid);
     
-    // We only update fields that can be changed from the form, leaving email and role untouched.
     const dataToSave: Partial<Omit<Doctor, 'uid' | 'email' | 'role' | 'avatarUrl'>> = {
         name: data.name,
         specialization: data.specialization,
