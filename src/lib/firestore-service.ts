@@ -1,6 +1,4 @@
 
-'use client';
-
 import { db, auth } from './firebase';
 import { collection, getDocs, doc, getDoc, updateDoc, addDoc, query, where, setDoc, deleteDoc } from 'firebase/firestore';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
