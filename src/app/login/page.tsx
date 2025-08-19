@@ -13,7 +13,7 @@ import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { auth } from '@/lib/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { getUserRole } from '@/lib/firestore-service';
+import { getPatient, getUserRole } from '@/lib/firestore-service';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -36,15 +36,21 @@ export default function LoginPage() {
         const role = await getUserRole(user.uid);
 
         if (role === 'patient') {
-            router.push('/patient/dashboard');
+            const patient = await getPatient(user.uid);
+            if (!patient?.phone) {
+                toast({ title: 'Login Successful', description: 'Redirecting to dashboard...' });
+                router.push('/patient/dashboard');
+                return;
+            }
+            router.push(`/login/verify-otp?uid=${user.uid}`);
+
         } else if (role === 'doctor') {
             router.push('/doctor/dashboard');
         } else if (role === 'admin') {
             router.push('/admin/dashboard');
         } else {
-            // Handle cases where user exists in Auth but not in Firestore collections
             toast({ title: 'Login Failed', description: 'User role not found. Please contact support.', variant: 'destructive' });
-            await auth.signOut(); // Sign out the user
+            await auth.signOut();
         }
 
     } catch (error: any) {
