@@ -13,7 +13,7 @@ import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { auth } from '@/lib/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { getPatient, getUserRole } from '@/lib/firestore-service';
+import { getUserRole } from '@/lib/firestore-service';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -36,14 +36,8 @@ export default function LoginPage() {
         const role = await getUserRole(user.uid);
 
         if (role === 'patient') {
-            const patient = await getPatient(user.uid);
-            if (!patient?.phone) {
-                toast({ title: 'Login Successful', description: 'Redirecting to dashboard...' });
-                router.push('/patient/dashboard');
-                return;
-            }
-            router.push(`/login/verify-otp?uid=${user.uid}`);
-
+            toast({ title: 'Login Successful', description: 'Redirecting to dashboard...' });
+            router.push('/patient/dashboard');
         } else if (role === 'doctor') {
             router.push('/doctor/dashboard');
         } else if (role === 'admin') {

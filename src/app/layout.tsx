@@ -26,7 +26,6 @@ export default function RootLayout({
             {children}
         </AuthProvider>
         <Toaster />
-        <div id="recaptcha-container"></div>
       </body>
     </html>
   );

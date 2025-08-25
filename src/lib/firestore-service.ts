@@ -27,7 +27,7 @@ export async function getUserRole(uid: string): Promise<'patient' | 'doctor' | '
 }
 
 
-export async function createUserInFirestore(uid: string, name: string, email: string, role: 'patient', phone: string) {
+export async function createUserInFirestore(uid: string, name: string, email: string, role: 'patient') {
     const collectionName = 'patients';
     const userDocRef = doc(db, collectionName, uid);
 
@@ -36,7 +36,6 @@ export async function createUserInFirestore(uid: string, name: string, email: st
         name,
         email,
         role,
-        phone,
         avatarUrl: `https://placehold.co/100x100.png`,
     };
 
