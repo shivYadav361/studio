@@ -20,13 +20,6 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useLoader } from '@/hooks/use-loader';
 
-// This function is required for static export. 
-// It will not generate any pages at build time, which is the desired behavior 
-// for this private, dynamic route. The page will be rendered on the client side.
-export async function generateStaticParams() {
-    return [];
-}
-
 interface PopulatedAppointment extends Appointment {
     doctor: Doctor | null;
 }
