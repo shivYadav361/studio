@@ -68,7 +68,7 @@ export default function SignupPage() {
         <Card className="shadow-2xl">
           <CardHeader className="items-center text-center">
             <Logo className="mb-4" />
-            <CardTitle className="text-3xl font-bold">Create a Patient Account</CardTitle>
+            <CardTitle className="text-2xl md:text-3xl font-bold">Create a Patient Account</CardTitle>
             <CardDescription>Join HealthHarbor to manage your health with ease.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">

@@ -181,7 +181,7 @@ export default function AppointmentDetailsPage() {
                             disabled={isCompleted}
                         />
                      </div>
-                     <div className="flex gap-4">
+                     <div className="flex flex-wrap gap-4">
                         <Button onClick={handleUpdateNotes} disabled={updating || isCompleted}>
                             {updating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             {updating ? "Saving..." : "Save Notes"}
@@ -195,7 +195,7 @@ export default function AppointmentDetailsPage() {
             </Card>
             <PatientHistory history={patientHistory} />
         </div>
-        <div>
+        <div className="order-first md:order-last">
             <Card className="sticky top-24">
                 <CardHeader className="text-center items-center">
                     <Avatar className="h-20 w-20 mb-2">
@@ -238,7 +238,7 @@ function PatientHistory({ history }: { history: PopulatedAppointment[] }) {
     return (
         <Card>
             <CardHeader>
-                <CardTitle className="flex items-center gap-2"><History className="h-6 w-6" /> Patient's Past Visits</CardTitle>
+                <CardTitle className="flex items-center gap-2 text-xl md:text-2xl"><History className="h-6 w-6" /> Patient's Past Visits</CardTitle>
             </CardHeader>
             <CardContent>
                 <Accordion type="single" collapsible className="w-full">
@@ -246,7 +246,7 @@ function PatientHistory({ history }: { history: PopulatedAppointment[] }) {
                         <AccordionItem value={app.id} key={app.id}>
                             <AccordionTrigger>
                                 <div className='flex items-center justify-between w-full pr-4'>
-                                    <div>
+                                    <div className='text-left'>
                                         <p className="font-semibold">{format(app.appointmentDate, 'PPP')} - {app.appointmentTime}</p>
                                         <p className="text-sm text-muted-foreground flex items-center gap-2">
                                             <Stethoscope className='h-4 w-4' />

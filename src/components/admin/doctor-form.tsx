@@ -123,13 +123,13 @@ export function DoctorForm({ isOpen, onOpenChange, doctor, onSuccess }: DoctorFo
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-w-md md:max-w-3xl">
         <DialogHeader>
           <DialogTitle>{doctor ? 'Edit Doctor' : 'Add New Doctor'}</DialogTitle>
           <DialogDescription>Fill in the details for the doctor profile.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 max-h-[70vh] overflow-y-auto pr-6">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                  <div className="space-y-2">
                     <Label htmlFor="name">Full Name</Label>
                     <Input id="name" {...register('name')} />
@@ -141,7 +141,7 @@ export function DoctorForm({ isOpen, onOpenChange, doctor, onSuccess }: DoctorFo
                     {errors.email && <p className="text-destructive text-sm">{errors.email.message}</p>}
                 </div>
                 {!doctor && (
-                    <div className="space-y-2 col-span-2">
+                    <div className="space-y-2 md:col-span-2">
                         <Label htmlFor="password">Password</Label>
                         <Input id="password" type="password" {...register('password')} />
                         {errors.password && <p className="text-destructive text-sm">{errors.password.message}</p>}
@@ -174,7 +174,7 @@ export function DoctorForm({ isOpen, onOpenChange, doctor, onSuccess }: DoctorFo
                         )}
                     />
                 </div>
-                <div className="space-y-2 col-span-2">
+                <div className="space-y-2 col-span-1 md:col-span-2">
                     <Label htmlFor="bio">Biography</Label>
                     <Textarea id="bio" {...register('bio')} />
                     {errors.bio && <p className="text-destructive text-sm">{errors.bio.message}</p>}
@@ -187,7 +187,7 @@ export function DoctorForm({ isOpen, onOpenChange, doctor, onSuccess }: DoctorFo
                     name="availableDays"
                     control={control}
                     render={({ field }) => (
-                        <div className="grid grid-cols-4 gap-2 mt-2">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
                             {availableDays.map(day => (
                                 <div key={day} className="flex items-center space-x-2">
                                     <Checkbox
@@ -214,7 +214,7 @@ export function DoctorForm({ isOpen, onOpenChange, doctor, onSuccess }: DoctorFo
                     name="availableTimes"
                     control={control}
                     render={({ field }) => (
-                        <div className="grid grid-cols-5 gap-2 mt-2">
+                        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mt-2">
                             {availableTimes.map(time => (
                                 <div key={time} className="flex items-center space-x-2">
                                      <Checkbox

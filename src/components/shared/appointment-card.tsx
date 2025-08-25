@@ -28,7 +28,7 @@ export function AppointmentCard({ appointment, perspective, user, onCancel }: Ap
 
   return (
     <Card className={cn("overflow-hidden transition-shadow hover:shadow-md", (isPast || appointment.status === 'cancelled') && 'bg-muted/50')}>
-      <CardHeader className="flex flex-row items-center gap-4 p-4 border-b">
+      <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 border-b">
         <Avatar className="h-12 w-12 border">
           <AvatarImage src={user.avatarUrl} alt={user.name} />
           <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
@@ -45,11 +45,11 @@ export function AppointmentCard({ appointment, perspective, user, onCancel }: Ap
             }
           </CardDescription>
         </div>
-        <Badge variant="outline" className={cn("capitalize", statusColors[appointment.status])}>
+        <Badge variant="outline" className={cn("capitalize self-start sm:self-center", statusColors[appointment.status])}>
             {appointment.status}
         </Badge>
       </CardHeader>
-      <CardContent className="p-4 grid grid-cols-2 gap-4 text-sm">
+      <CardContent className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
         <div className="flex items-center gap-2 text-muted-foreground">
             <Calendar className="h-4 w-4 text-primary"/>
             <span className="font-medium text-foreground">{format(appointment.appointmentDate, 'PPP')}</span>
@@ -58,11 +58,11 @@ export function AppointmentCard({ appointment, perspective, user, onCancel }: Ap
             <Clock className="h-4 w-4 text-primary"/>
             <span className="font-medium text-foreground">{appointment.appointmentTime}</span>
         </div>
-        <div className="col-span-2">
+        <div className="col-span-1 sm:col-span-2">
             <p className="text-muted-foreground"><strong>Symptoms:</strong> {appointment.symptoms}</p>
         </div>
         {appointment.status === 'completed' && appointment.doctorNotes && (
-             <div className="col-span-2 mt-2 p-3 bg-secondary/50 rounded-md">
+             <div className="col-span-1 sm:col-span-2 mt-2 p-3 bg-secondary/50 rounded-md">
                 <p className="font-semibold text-foreground">Doctor's Notes:</p>
                 <p className="text-muted-foreground text-sm">{appointment.doctorNotes}</p>
             </div>

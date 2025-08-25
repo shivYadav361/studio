@@ -92,7 +92,7 @@ export function AppLayout({ user, navItems, children }: AppLayoutProps) {
             </Sheet>
 
             <div className="flex items-center gap-4">
-                <span className='font-medium'>{user.name}</span>
+                <span className='font-medium hidden sm:inline'>{user.name}</span>
                 <Avatar>
                     <AvatarImage src={user.avatarUrl} alt={user.name} />
                     <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>

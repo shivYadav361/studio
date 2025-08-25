@@ -68,7 +68,7 @@ export default function LoginPage() {
         <Card className="shadow-2xl">
           <CardHeader className="items-center text-center">
             <Logo className="mb-4" />
-            <CardTitle className="text-3xl font-bold">Welcome Back</CardTitle>
+            <CardTitle className="text-2xl md:text-3xl font-bold">Welcome Back</CardTitle>
             <CardDescription>Enter your credentials to access your account.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">

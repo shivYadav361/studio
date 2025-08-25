@@ -85,13 +85,13 @@ export function DoctorDetailClient({ doctor }: { doctor: Doctor }) {
       <Card className="overflow-hidden shadow-lg">
         <CardHeader className="bg-secondary/30 p-6">
             <div className="flex flex-col md:flex-row items-start gap-6">
-                <Avatar className="h-32 w-32 border-4 border-background shadow-xl">
+                <Avatar className="h-24 w-24 md:h-32 md:w-32 border-4 border-background shadow-xl">
                     <AvatarImage src={doctor.avatarUrl} alt={doctor.name} />
                     <AvatarFallback className="text-4xl">{doctor.name.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div className="pt-2">
-                    <CardTitle className="text-3xl font-extrabold">{doctor.name}</CardTitle>
-                    <CardDescription className="flex items-center gap-2 text-lg mt-1">
+                    <CardTitle className="text-2xl md:text-3xl font-extrabold">{doctor.name}</CardTitle>
+                    <CardDescription className="flex items-center gap-2 text-base md:text-lg mt-1">
                         <Stethoscope className="h-5 w-5 text-primary" />
                         {doctor.specialization}
                     </CardDescription>
