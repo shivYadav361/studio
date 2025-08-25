@@ -14,10 +14,12 @@ import { useToast } from '@/hooks/use-toast';
 import { auth } from '@/lib/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { getUserRole } from '@/lib/firestore-service';
+import { useLoader } from '@/hooks/use-loader';
 
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { showLoader, hideLoader } = useLoader();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -29,6 +31,7 @@ export default function LoginPage() {
         return;
     }
     setLoading(true);
+    showLoader();
     try {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
@@ -55,6 +58,7 @@ export default function LoginPage() {
         toast({ title: 'Login Failed', description: errorMessage, variant: 'destructive' });
     } finally {
         setLoading(false);
+        hideLoader();
     }
   };
 

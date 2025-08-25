@@ -21,6 +21,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
+import { useLoader } from '@/hooks/use-loader';
 
 interface PopulatedAppointment extends Appointment {
     doctor: Doctor | null;
@@ -31,6 +32,7 @@ export default function MyAppointmentsPage() {
   const { toast } = useToast();
   const [appointments, setAppointments] = useState<PopulatedAppointment[]>([]);
   const [loading, setLoading] = useState(true);
+  const { showLoader, hideLoader } = useLoader();
   
   // State for cancellation dialog
   const [isAlertOpen, setIsAlertOpen] = useState(false);
@@ -40,17 +42,28 @@ export default function MyAppointmentsPage() {
   const fetchAppointments = async () => {
       if (!user) return;
       setLoading(true);
-      const userAppointments = await getAppointmentsForPatient(user.uid);
+      showLoader();
+      try {
+        const userAppointments = await getAppointmentsForPatient(user.uid);
       
-      const populatedAppointments = await Promise.all(
-          userAppointments.map(async (app) => {
-              const doctor = await getDoctor(app.doctorId);
-              return { ...app, doctor };
-          })
-      );
-      
-      setAppointments(populatedAppointments);
-      setLoading(false);
+        const populatedAppointments = await Promise.all(
+            userAppointments.map(async (app) => {
+                const doctor = await getDoctor(app.doctorId);
+                return { ...app, doctor };
+            })
+        );
+        
+        setAppointments(populatedAppointments);
+      } catch(error) {
+        toast({
+          title: "Error",
+          description: "Failed to fetch appointments.",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
+        hideLoader();
+      }
   }
 
   useEffect(() => {
@@ -79,6 +92,7 @@ export default function MyAppointmentsPage() {
   const handleConfirmCancel = async () => {
     if (!selectedAppointmentId) return;
 
+    showLoader();
     try {
       await cancelAppointment(selectedAppointmentId);
       toast({
@@ -94,6 +108,7 @@ export default function MyAppointmentsPage() {
         variant: "destructive",
       });
     } finally {
+      hideLoader();
       setIsAlertOpen(false);
       setSelectedAppointmentId(null);
     }

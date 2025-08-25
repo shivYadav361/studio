@@ -3,6 +3,8 @@ import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import AuthProvider from '@/hooks/use-auth.tsx';
+import { LoaderProvider } from '@/hooks/use-loader';
+import { GlobalLoader } from '@/components/shared/global-loader';
 
 export const metadata: Metadata = {
   title: 'HealthHarbor',
@@ -23,7 +25,10 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <AuthProvider>
+          <LoaderProvider>
+            <GlobalLoader />
             {children}
+          </LoaderProvider>
         </AuthProvider>
         <Toaster />
       </body>

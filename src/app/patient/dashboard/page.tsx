@@ -10,20 +10,29 @@ import { getDoctors } from '@/lib/firestore-service';
 import type { Doctor } from '@/lib/types';
 import { Stethoscope, Search } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useLoader } from '@/hooks/use-loader';
 
 export default function PatientDashboard() {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [specialization, setSpecialization] = useState('all');
+  const { showLoader, hideLoader } = useLoader();
 
   useEffect(() => {
     const fetchDoctors = async () => {
       setLoading(true);
-      // Only fetch active doctors for the patient view
-      const fetchedDoctors = await getDoctors({ activeOnly: true });
-      setDoctors(fetchedDoctors);
-      setLoading(false);
+      showLoader();
+      try {
+        // Only fetch active doctors for the patient view
+        const fetchedDoctors = await getDoctors({ activeOnly: true });
+        setDoctors(fetchedDoctors);
+      } catch (error) {
+        console.error("Failed to fetch doctors:", error);
+      } finally {
+        setLoading(false);
+        hideLoader();
+      }
     };
     fetchDoctors();
   }, []);

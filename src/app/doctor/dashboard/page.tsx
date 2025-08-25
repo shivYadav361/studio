@@ -12,6 +12,7 @@ import type { Appointment, Patient } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/use-auth.tsx';
 import { isToday, isTomorrow, parseISO, startOfDay } from 'date-fns';
+import { useLoader } from '@/hooks/use-loader';
 
 interface PopulatedAppointment extends Appointment {
     patient: Patient | null;
@@ -21,21 +22,29 @@ export default function DoctorDashboardPage() {
   const { user } = useAuth();
   const [appointments, setAppointments] = useState<PopulatedAppointment[]>([]);
   const [loading, setLoading] = useState(true);
+  const { showLoader, hideLoader } = useLoader();
 
   useEffect(() => {
     const fetchAppointments = async () => {
         if (!user) return;
         setLoading(true);
-        const doctorAppointments = await getAppointmentsForDoctor(user.uid);
+        showLoader();
+        try {
+          const doctorAppointments = await getAppointmentsForDoctor(user.uid);
 
-        const populatedAppointments = await Promise.all(
-            doctorAppointments.map(async (app) => {
-                const patient = await getPatient(app.patientId);
-                return { ...app, patient };
-            })
-        );
-        setAppointments(populatedAppointments);
-        setLoading(false);
+          const populatedAppointments = await Promise.all(
+              doctorAppointments.map(async (app) => {
+                  const patient = await getPatient(app.patientId);
+                  return { ...app, patient };
+              })
+          );
+          setAppointments(populatedAppointments);
+        } catch (error) {
+          console.error("Failed to fetch appointments:", error);
+        } finally {
+          setLoading(false);
+          hideLoader();
+        }
     }
     fetchAppointments();
   }, [user]);

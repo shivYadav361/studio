@@ -14,10 +14,12 @@ import { useToast } from '@/hooks/use-toast';
 import { auth } from '@/lib/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { createUserInFirestore } from '@/lib/firestore-service';
+import { useLoader } from '@/hooks/use-loader';
 
 export default function SignupPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { showLoader, hideLoader } = useLoader();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -30,6 +32,7 @@ export default function SignupPage() {
         return;
     }
     setLoading(true);
+    showLoader();
 
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -55,6 +58,7 @@ export default function SignupPage() {
         toast({ title: 'Signup Failed', description: errorMessage, variant: 'destructive' });
     } finally {
         setLoading(false);
+        hideLoader();
     }
   };
 

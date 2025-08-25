@@ -16,12 +16,14 @@ import { cn } from '@/lib/utils';
 import type { DateRange } from "react-day-picker";
 import type { Doctor } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth.tsx';
+import { useLoader } from '@/hooks/use-loader';
 
 
 export function DoctorDetailClient({ doctor }: { doctor: Doctor }) {
   const { toast } = useToast();
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
+  const { showLoader, hideLoader } = useLoader();
 
   const [booking, setBooking] = useState(false);
   
@@ -49,6 +51,7 @@ export function DoctorDetailClient({ doctor }: { doctor: Doctor }) {
       return;
     }
     setBooking(true);
+    showLoader();
     try {
         await bookAppointment(doctor.uid, user.uid, date, selectedTime, symptoms);
         toast({
@@ -67,6 +70,7 @@ export function DoctorDetailClient({ doctor }: { doctor: Doctor }) {
         });
     } finally {
         setBooking(false);
+        hideLoader();
     }
   };
   

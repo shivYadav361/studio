@@ -16,6 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { createDoctor, saveDoctor } from '@/lib/firestore-service';
 import type { Doctor } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
+import { useLoader } from '@/hooks/use-loader';
 
 const availableDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const availableTimes = ['09:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '01:00 PM', '02:00 PM', '03:00 PM', '04:00 PM', '05:00 PM'];
@@ -46,6 +47,7 @@ interface DoctorFormProps {
 export function DoctorForm({ isOpen, onOpenChange, doctor, onSuccess }: DoctorFormProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const { showLoader, hideLoader } = useLoader();
 
   const { register, handleSubmit, control, reset, formState: { errors } } = useForm<DoctorFormValues>({
     resolver: zodResolver(doctorFormSchema),
@@ -88,6 +90,7 @@ export function DoctorForm({ isOpen, onOpenChange, doctor, onSuccess }: DoctorFo
 
   const onSubmit = async (data: DoctorFormValues) => {
     setLoading(true);
+    showLoader();
     try {
         const doctorPayload = {
             ...data,
@@ -102,6 +105,7 @@ export function DoctorForm({ isOpen, onOpenChange, doctor, onSuccess }: DoctorFo
             if (!doctorPayload.password) {
                 toast({ title: 'Error', description: 'Password is required for new doctors.', variant: 'destructive' });
                 setLoading(false);
+                hideLoader();
                 return;
             }
             await createDoctor(doctorPayload);
@@ -113,6 +117,7 @@ export function DoctorForm({ isOpen, onOpenChange, doctor, onSuccess }: DoctorFo
         toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } finally {
         setLoading(false);
+        hideLoader();
     }
   };
 

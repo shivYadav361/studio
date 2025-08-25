@@ -18,6 +18,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { useLoader } from '@/hooks/use-loader';
 
 // This function is required for static export. 
 // It will not generate any pages at build time, which is the desired behavior 
@@ -34,6 +35,7 @@ export default function AppointmentDetailsPage() {
   const params = useParams();
   const id = params.id as string;
   const { toast } = useToast();
+  const { showLoader, hideLoader } = useLoader();
   
   const [data, setData] = useState<{appointment: Appointment, patient: Patient | null} | null>(null);
   const [patientHistory, setPatientHistory] = useState<PopulatedAppointment[]>([]);
@@ -48,29 +50,41 @@ export default function AppointmentDetailsPage() {
     if (!id) return;
     const fetchAppointmentData = async () => {
         setLoading(true);
-        const result = await getAppointment(id);
-        
-        if(result) {
-            setData(result);
-            setDoctorNotes(result.appointment.doctorNotes || '');
-
-            // Fetch patient history
-            const history = await getAppointmentsForPatient(result.appointment.patientId);
-            const populatedHistory = await Promise.all(
-                history.map(async (app) => {
-                    const doctor = await getDoctor(app.doctorId);
-                    return { ...app, doctor };
-                })
-            );
-
-            // Filter to show only *completed* past appointments, sorted by date
-            const sortedHistory = populatedHistory
-                .filter(a => a.id !== id && a.status === 'completed')
-                .sort((a, b) => b.appointmentDate.getTime() - a.appointmentDate.getTime());
+        showLoader();
+        try {
+            const result = await getAppointment(id);
             
-            setPatientHistory(sortedHistory);
+            if(result) {
+                setData(result);
+                setDoctorNotes(result.appointment.doctorNotes || '');
+
+                // Fetch patient history
+                const history = await getAppointmentsForPatient(result.appointment.patientId);
+                const populatedHistory = await Promise.all(
+                    history.map(async (app) => {
+                        const doctor = await getDoctor(app.doctorId);
+                        return { ...app, doctor };
+                    })
+                );
+
+                // Filter to show only *completed* past appointments, sorted by date
+                const sortedHistory = populatedHistory
+                    .filter(a => a.id !== id && a.status === 'completed')
+                    .sort((a, b) => b.appointmentDate.getTime() - a.appointmentDate.getTime());
+                
+                setPatientHistory(sortedHistory);
+            }
+        } catch (error) {
+            console.error("Failed to fetch appointment data:", error);
+            toast({
+                title: 'Error',
+                description: 'Could not load appointment details.',
+                variant: 'destructive',
+            });
+        } finally {
+            setLoading(false);
+            hideLoader();
         }
-        setLoading(false);
     }
     fetchAppointmentData();
   }, [id]);
@@ -95,6 +109,7 @@ export default function AppointmentDetailsPage() {
   
   const handleUpdateNotes = async () => {
     setUpdating(true);
+    showLoader();
     try {
         await updateAppointment(appointment.id, { doctorNotes });
         toast({
@@ -110,11 +125,13 @@ export default function AppointmentDetailsPage() {
         });
     } finally {
         setUpdating(false);
+        hideLoader();
     }
   }
 
   const handleCompleteAppointment = async () => {
       setCompleting(true);
+      showLoader();
       try {
         await updateAppointment(appointment.id, { status: 'completed', doctorNotes });
         toast({
@@ -132,6 +149,7 @@ export default function AppointmentDetailsPage() {
         });
       } finally {
         setCompleting(false);
+        hideLoader();
       }
   }
   

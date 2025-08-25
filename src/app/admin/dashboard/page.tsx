@@ -14,19 +14,28 @@ import { PlusCircle, Users, Pencil } from 'lucide-react';
 import { DoctorForm } from '@/components/admin/doctor-form';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { useLoader } from '@/hooks/use-loader';
 
 export default function AdminDashboardPage() {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
+  const { showLoader, hideLoader } = useLoader();
 
   const fetchDoctors = async () => {
     setLoading(true);
-    // Admin gets all doctors, active or not
-    const fetchedDoctors = await getDoctors({ activeOnly: false });
-    setDoctors(fetchedDoctors);
-    setLoading(false);
+    showLoader();
+    try {
+      // Admin gets all doctors, active or not
+      const fetchedDoctors = await getDoctors({ activeOnly: false });
+      setDoctors(fetchedDoctors);
+    } catch (error) {
+      console.error("Failed to fetch doctors:", error);
+    } finally {
+      setLoading(false);
+      hideLoader();
+    }
   };
 
   useEffect(() => {
